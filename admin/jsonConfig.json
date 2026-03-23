@@ -1,0 +1,309 @@
+{
+	"type": "panel",
+	"items": {
+		"modeHeader": {
+			"type": "header",
+			"text": "connectionMode",
+			"size": 5
+		},
+		"mode": {
+			"type": "select",
+			"label": "mode",
+			"options": [
+				{ "value": "client", "label": "modeClient" },
+				{ "value": "server", "label": "modeServer" }
+			],
+			"default": "client",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"serverHeader": {
+			"type": "header",
+			"text": "serverSettings",
+			"size": 5,
+			"hidden": "data.mode !== 'server'"
+		},
+		"port": {
+			"type": "number",
+			"label": "serverPort",
+			"min": 1,
+			"max": 65535,
+			"default": 1883,
+			"hidden": "data.mode !== 'server'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"bind": {
+			"type": "text",
+			"label": "bindAddress",
+			"default": "0.0.0.0",
+			"hidden": "data.mode !== 'server'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"serverSsl": {
+			"type": "checkbox",
+			"label": "useTls",
+			"hidden": "data.mode !== 'server'",
+			"xs": 12,
+			"sm": 12,
+			"md": 12,
+			"lg": 12,
+			"xl": 12
+		},
+		"serverCertPath": {
+			"type": "text",
+			"label": "certFilePath",
+			"hidden": "data.mode !== 'server' || !data.serverSsl",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"serverKeyPath": {
+			"type": "text",
+			"label": "keyFilePath",
+			"hidden": "data.mode !== 'server' || !data.serverSsl",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"serverAuthHeader": {
+			"type": "header",
+			"text": "serverAuthentication",
+			"size": 5,
+			"hidden": "data.mode !== 'server'"
+		},
+		"user": {
+			"type": "text",
+			"label": "username",
+			"hidden": "data.mode !== 'server'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"password": {
+			"type": "password",
+			"label": "password",
+			"hidden": "data.mode !== 'server'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerHeader": {
+			"type": "header",
+			"text": "brokerConnection",
+			"size": 5,
+			"hidden": "data.mode !== 'client'"
+		},
+		"brokerUrl": {
+			"type": "text",
+			"label": "brokerHost",
+			"default": "localhost",
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerPort": {
+			"type": "number",
+			"label": "brokerPort",
+			"min": 1,
+			"max": 65535,
+			"default": 1883,
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerUseTls": {
+			"type": "checkbox",
+			"label": "useTls",
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 12,
+			"md": 12,
+			"lg": 12,
+			"xl": 12
+		},
+		"brokerTlsRejectUnauthorized": {
+			"type": "checkbox",
+			"label": "rejectUnauthorized",
+			"default": true,
+			"hidden": "data.mode !== 'client' || !data.brokerUseTls",
+			"xs": 12,
+			"sm": 12,
+			"md": 12,
+			"lg": 12,
+			"xl": 12
+		},
+		"brokerCaPath": {
+			"type": "text",
+			"label": "caFilePath",
+			"hidden": "data.mode !== 'client' || !data.brokerUseTls",
+			"xs": 12,
+			"sm": 4,
+			"md": 4,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerCertPath": {
+			"type": "text",
+			"label": "certFilePath",
+			"hidden": "data.mode !== 'client' || !data.brokerUseTls",
+			"xs": 12,
+			"sm": 4,
+			"md": 4,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerKeyPath": {
+			"type": "text",
+			"label": "keyFilePath",
+			"hidden": "data.mode !== 'client' || !data.brokerUseTls",
+			"xs": 12,
+			"sm": 4,
+			"md": 4,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerAuthHeader": {
+			"type": "header",
+			"text": "brokerAuthentication",
+			"size": 5,
+			"hidden": "data.mode !== 'client'"
+		},
+		"brokerUser": {
+			"type": "text",
+			"label": "username",
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerPassword": {
+			"type": "password",
+			"label": "password",
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerAdvancedHeader": {
+			"type": "header",
+			"text": "advancedSettings",
+			"size": 5,
+			"hidden": "data.mode !== 'client'"
+		},
+		"brokerClientId": {
+			"type": "text",
+			"label": "clientId",
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 12,
+			"md": 12,
+			"lg": 12,
+			"xl": 12
+		},
+		"brokerKeepalive": {
+			"type": "number",
+			"label": "keepalive",
+			"default": 60,
+			"min": 0,
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 4,
+			"md": 4,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerReconnectPeriod": {
+			"type": "number",
+			"label": "reconnectPeriod",
+			"default": 5000,
+			"min": 0,
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 4,
+			"md": 4,
+			"lg": 4,
+			"xl": 4
+		},
+		"timeout": {
+			"type": "number",
+			"label": "timeout",
+			"default": 300,
+			"min": 0,
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 4,
+			"md": 4,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerCleanSession": {
+			"type": "checkbox",
+			"label": "cleanSession",
+			"default": true,
+			"hidden": "data.mode !== 'client'",
+			"xs": 12,
+			"sm": 12,
+			"md": 12,
+			"lg": 12,
+			"xl": 12
+		},
+		"topicHeader": {
+			"type": "header",
+			"text": "topicSettings",
+			"size": 5
+		},
+		"brokerTopicPrefix": {
+			"type": "text",
+			"label": "topicPrefix",
+			"default": "tasmota",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		},
+		"brokerTopicStructure": {
+			"type": "select",
+			"label": "topicStructure",
+			"options": [
+				{ "value": "device-first", "label": "topicDeviceFirst" },
+				{ "value": "prefix-first", "label": "topicPrefixFirst" }
+			],
+			"default": "device-first",
+			"xs": 12,
+			"sm": 6,
+			"md": 6,
+			"lg": 4,
+			"xl": 4
+		}
+	}
+}

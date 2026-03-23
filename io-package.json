@@ -1,0 +1,130 @@
+{
+	"common": {
+		"name": "tasmota",
+		"version": "0.0.1",
+		"news": {
+			"0.0.1": {
+				"en": "initial release",
+				"de": "Erstveröffentlichung",
+				"ru": "Начальная версия",
+				"pt": "lançamento inicial",
+				"nl": "Eerste uitgave",
+				"fr": "Première version",
+				"it": "Versione iniziale",
+				"es": "Versión inicial",
+				"pl": "Pierwsze wydanie",
+				"uk": "Початкова версія",
+				"zh-cn": "首次出版"
+			}
+		},
+		"titleLang": {
+			"en": "MQTT to Tasmota",
+			"de": "MQTT zu Tasmota",
+			"ru": "MQTT в Тасмота",
+			"pt": "MQTT para Tasmota",
+			"nl": "MQTT naar Tasmota",
+			"fr": "MQTT vers Tasmota",
+			"it": "MQTT a Tasmota",
+			"es": "MQTT a Tasmota",
+			"pl": "MQTT do Tasmoty",
+			"uk": "MQTT до Tasmota",
+			"zh-cn": "MQTT 到 塔斯莫塔"
+		},
+		"desc": {
+			"en": "Read and Write Topics between MQTT and Tasmota",
+			"de": "Lese- und Schreibthemen zwischen MQTT und Tasmota",
+			"ru": "Чтение и запись тем между MQTT и Tasmota",
+			"pt": "Ler e escrever tópicos entre MQTT e Tasmota",
+			"nl": "Lees en schrijf onderwerpen tussen MQTT en Tasmota",
+			"fr": "Lire et écrire des sujets entre MQTT et Tasmota",
+			"it": "Leggere e scrivere argomenti tra MQTT e Tasmota",
+			"es": "Leer y escribir temas entre MQTT y Tasmota",
+			"pl": "Czytaj i pisz tematy pomiędzy MQTT i Tasmota",
+			"uk": "Читайте та пишіть теми між MQTT і Tasmota",
+			"zh-cn": "MQTT 和 Tasmota 之间的读写主题"
+		},
+		"authors": ["patricknitsch <patricknitsch@web.de>"],
+		"keywords": ["tasmota", "adapter", "mqtt"],
+		"licenseInformation": {
+			"type": "free",
+			"license": "MIT"
+		},
+		"platform": "Javascript/Node.js",
+		"icon": "tasmota.png",
+		"enabled": true,
+		"extIcon": "https://raw.githubusercontent.com/patricknitsch/ioBroker.tasmota/main/admin/tasmota.png",
+		"readme": "https://github.com/patricknitsch/ioBroker.tasmota/blob/main/README.md",
+		"loglevel": "info",
+		"tier": 3,
+		"mode": "daemon",
+		"type": "protocols",
+		"compact": true,
+		"connectionType": "local",
+		"dataSource": "push",
+		"adminUI": {
+			"config": "json"
+		},
+		"dependencies": [
+			{
+				"js-controller": ">=6.0.11"
+			}
+		],
+		"globalDependencies": [
+			{
+				"admin": ">=7.0.23"
+			}
+		]
+	},
+	"native": {
+		"mode": "client",
+		"port": 1883,
+		"bind": "0.0.0.0",
+		"user": "",
+		"password": "",
+		"serverSsl": false,
+		"serverCertPath": "",
+		"serverKeyPath": "",
+		"brokerUrl": "localhost",
+		"brokerPort": 1883,
+		"brokerUser": "",
+		"brokerPassword": "",
+		"brokerClientId": "",
+		"brokerTopicPrefix": "tasmota",
+		"brokerUseTls": false,
+		"brokerTlsRejectUnauthorized": true,
+		"brokerCaPath": "",
+		"brokerCertPath": "",
+		"brokerKeyPath": "",
+		"brokerKeepalive": 60,
+		"brokerReconnectPeriod": 5000,
+		"brokerCleanSession": true,
+		"timeout": 300,
+		"brokerTopicStructure": "device-first"
+	},
+	"protectedNative": ["password", "brokerPassword"],
+	"encryptedNative": ["password", "brokerPassword"],
+	"objects": [],
+	"instanceObjects": [
+		{
+			"_id": "info",
+			"type": "channel",
+			"common": {
+				"name": "Information"
+			},
+			"native": {}
+		},
+		{
+			"_id": "info.connection",
+			"type": "state",
+			"common": {
+				"role": "indicator.connected",
+				"name": "Device or service connected",
+				"type": "boolean",
+				"read": true,
+				"write": false,
+				"def": false
+			},
+			"native": {}
+		}
+	]
+}
