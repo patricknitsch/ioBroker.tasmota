@@ -52,6 +52,9 @@ class Tasmota extends utils.Adapter {
 		} else {
 			await this.startMqttClient();
 		}
+
+		// Subscribe to cmnd states so user-initiated commands are published over MQTT
+		await this.subscribeStatesAsync('*.cmnd.*');
 	}
 
 	/**
@@ -536,70 +539,71 @@ class Tasmota extends utils.Adapter {
 		}
 
 		// A state was changed from outside (command from user)
-		// Publish to MQTT if we have an active connection
+		// Only handle cmnd states – stat and tele come from the device and must not be echoed back
 		const relativeId = id.replace(`${this.namespace}.`, '');
 		const parts = relativeId.split('.');
 
-		if (parts.length < 2) {
+		if (parts.length < 3 || parts[1] !== 'cmnd') {
 			return;
 		}
 
 		// Reconstruct a Tasmota command topic from the state ID
-		let topic = null;
-		const knownPrefixes = ['tele', 'cmnd', 'stat'];
-		const structure = this.config.brokerTopicStructure || 'prefix-first';
+		const device = parts[0];
+		const prefix = 'cmnd';
+		const command = parts.slice(2).join('/');
 
-		if (parts.length >= 3 && knownPrefixes.includes(parts[1])) {
-			const device = parts[0];
-			const prefix = parts[1];
-			const command = parts.slice(2).join('/');
-			if (structure === 'device-first') {
-				// Format: {device}/{prefix}/{command}
-				topic = `${device}/${prefix}/${command}`;
-			} else {
-				// Format: {prefix}/{device}/{command}
-				topic = `${prefix}/${device}/${command}`;
-			}
-		} else if (parts.length >= 2) {
-			// Generic: just publish as-is
-			topic = relativeId.replace(/\./g, '/');
+		const structure = this.config.brokerTopicStructure || 'prefix-first';
+		let topic;
+		if (structure === 'device-first') {
+			// Format: {device}/cmnd/{command}
+			topic = `${device}/${prefix}/${command}`;
+		} else {
+			// Format: cmnd/{device}/{command}
+			topic = `${prefix}/${device}/${command}`;
 		}
 
 		// Prepend broker topic prefix if configured
 		const topicPrefix = this.config.brokerTopicPrefix;
-		if (topic && topicPrefix) {
+		if (topicPrefix) {
 			topic = `${topicPrefix}/${topic}`;
 		}
 
-		if (topic) {
-			const value = state.val !== null && state.val !== undefined ? String(state.val) : '';
-			if (this.mqttClient && this.mqttClient.connected) {
-				this.mqttClient.publish(topic, value, { qos: 0 }, err => {
+		// Convert value for Tasmota commands: boolean true/false → ON/OFF
+		let value;
+		if (state.val === true) {
+			value = 'ON';
+		} else if (state.val === false) {
+			value = 'OFF';
+		} else {
+			value = state.val !== null && state.val !== undefined ? String(state.val) : '';
+		}
+
+		if (this.mqttClient && this.mqttClient.connected) {
+			this.mqttClient.publish(topic, value, { qos: 0 }, err => {
+				if (err) {
+					this.log.error(`Failed to publish ${topic}: ${err.message}`);
+				} else {
+					this.log.debug(`Published: ${topic} = ${value}`);
+				}
+			});
+		} else if (this.aedesServer) {
+			this.aedesServer.publish(
+				{
+					cmd: 'publish',
+					qos: 0,
+					topic,
+					payload: Buffer.from(value),
+					retain: false,
+					dup: false,
+				},
+				err => {
 					if (err) {
 						this.log.error(`Failed to publish ${topic}: ${err.message}`);
 					} else {
-						this.log.debug(`Published: ${topic} = ${value}`);
+						this.log.debug(`Published via server: ${topic} = ${value}`);
 					}
-				});
-			} else if (this.aedesServer) {
-				this.aedesServer.publish(
-					{
-						cmd: 'publish',
-						qos: 0,
-						topic,
-						payload: Buffer.from(value),
-						retain: false,
-						dup: false,
-					},
-					err => {
-						if (err) {
-							this.log.error(`Failed to publish ${topic}: ${err.message}`);
-						} else {
-							this.log.debug(`Published via server: ${topic} = ${value}`);
-						}
-					},
-				);
-			}
+				},
+			);
 		}
 	}
 }

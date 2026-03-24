@@ -477,6 +477,7 @@ let socket    = null;
 let namespace = null;       // e.g. 'tasmota.0'
 let allDevices = [];        // array of device objects
 let allStates  = {};        // map: stateId → {val, ack, ...}
+let knownDeviceIds = new Set(); // short IDs of loaded devices for O(1) lookup
 let selectedDeviceShortId = null;
 
 async function socketCall(method, ...args) {
@@ -580,6 +581,7 @@ async function refreshAll() {
     if (!namespace) return;
     allDevices = [];
     allStates  = {};
+    knownDeviceIds = new Set();
 
     try {
         const view = await socketCall('getObjectView', 'system', 'device', {
@@ -594,6 +596,7 @@ async function refreshAll() {
                 // Only direct children of the namespace (one level deeper)
                 if (obj._id.split('.').length === nsDepth + 1) {
                     allDevices.push(obj);
+                    knownDeviceIds.add(obj._id.split('.').pop());
                 }
             }
         }
@@ -812,11 +815,17 @@ async function sendPower(stateId, value) {
 function handleStateChange(id, state) {
     if (!state) return;
 
+    const shortId = id.replace(namespace + '.', '').split('.')[0];
+
+    // Only update the state cache for devices already in the known list.
+    // This prevents auto-discovery changes to the dropdown: newly appearing
+    // devices are only reflected after an explicit Refresh.
+    if (!knownDeviceIds.has(shortId)) return;
+
     // Update in-memory cache
     allStates[id] = state;
 
     // Re-render only if the changed state belongs to the selected device
-    const shortId = id.replace(namespace + '.', '').split('.')[0];
     if (shortId === selectedDeviceShortId) {
         renderDevice();
     }
