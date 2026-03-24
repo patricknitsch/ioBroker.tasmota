@@ -1,6 +1,6 @@
 {
   "name": "iobroker.tasmota",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Read and Write Topics between MQTT and Tasmota",
   "author": {
     "name": "patricknitsch",
@@ -39,7 +39,7 @@
     "@tsconfig/node20": "^20.1.9",
     "@types/iobroker": "npm:@iobroker/types@^7.1.0",
     "@types/node": "^25.5.0",
-    "typescript": "~6.0.2"
+    "typescript": "~5.9.3"
   },
   "main": "main.js",
   "files": [

@@ -10,111 +10,220 @@
 
 **Tests:** ![Test and Release](https://github.com/patricknitsch/ioBroker.tasmota/workflows/Test%20and%20Release/badge.svg)
 
-## tasmota adapter for ioBroker
+---
 
-Read and Write Topics between MQTT and Tasmota
+##
 
-## Developer manual
-This section is intended for the developer. It can be deleted later.
+## 🌍 Overview
 
-### DISCLAIMER
+<img align="left" src="admin/tasmota.png" alt="image" width="128" /><p>
+This adapter integrates <strong>Tasmota</strong> smart home devices into ioBroker via <strong>MQTT</strong>.
 
-Please make sure that you consider copyrights and trademarks when you use names or logos of a company and add a disclaimer to your README.
-You can check other adapters for examples or ask in the developer community. Using a name or logo of a company without permission may cause legal problems for you.
+It supports two modes of operation: as a built-in **MQTT broker** (server mode) so Tasmota devices connect directly, or as an **MQTT client** connecting to an existing broker such as Mosquitto.
 
-### Getting started
+All Tasmota devices are discovered automatically — no manual configuration per device required. As soon as a device publishes its first message, the adapter creates the corresponding ioBroker objects and states dynamically.
 
-You are almost done, only a few steps left:
-1. Create a new repository on GitHub with the name `ioBroker.tasmota`
-1. Initialize the current folder as a new git repository:  
-```bash
-git init -b main
-git add .
-git commit -m "Initial commit"
+##
+
+## 🚀 How to Start
+
+1. Install adapter in ioBroker
+2. Open instance configuration
+3. Choose mode and enter connection details:
+
+| Setting              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| Mode                 | `server` (built-in broker) or `client`         |
+| Port                 | MQTT port (default: **1883**)                  |
+| Broker Host          | Hostname/IP of external broker (client mode)   |
+| Topic Prefix         | Tasmota topic prefix (default: `tasmota`)      |
+| Topic Structure      | `device-first` or `prefix-first`               |
+| Username / Password  | Optional MQTT authentication                   |
+| TLS                  | Enable for encrypted connections               |
+
+4. Save & start adapter
+5. Flash Tasmota firmware on your device and configure the MQTT server to point to ioBroker
+
+##
+
+## 🖥️ Device Overview Tab
+
+The adapter includes a built-in **Device Overview** tab in ioBroker Admin.
+It displays all discovered Tasmota devices and their live states in a responsive card layout.
+
+### Features of the tab
+
+| Feature              | Description                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| Device cards         | One card per discovered Tasmota device                         |
+| Online / Offline     | Live connectivity badge based on LWT / STATUS messages         |
+| Power control        | ON / OFF toggle buttons for each relay channel                 |
+| Sensor display       | Temperature, humidity, pressure and other sensor readings      |
+| Energy monitoring    | Voltage, current, power and energy consumption                 |
+| WiFi info            | RSSI / Signal strength                                         |
+| Device info          | Uptime, IP, hostname                                           |
+| Search               | Filter devices by name                                         |
+| Live updates         | Real-time state changes via ioBroker socket subscription       |
+| Dark mode            | Automatically follows ioBroker Admin theme                     |
+| i18n                 | German and English (auto-detected)                             |
+| Configuration button | Opens the adapter instance configuration in one click          |
+
+##
+
+## 📋 Supported Device Types & States
+
+The adapter **auto-discovers** any device running Tasmota firmware. The states created in the ioBroker object tree depend on the sensors and modules configured in Tasmota. Below are the most common device types and their states.
+
+---
+
+### 💡 Power Switch (single relay, e.g. Sonoff Basic / S20)
+
+| State path            | Description               | R / W |
+| --------------------- | ------------------------- | ----- |
+| `stat.POWER`          | Current relay state       | R     |
+| `cmnd.POWER`          | Set relay (ON / OFF)      | R/W   |
+| `tele.STATE.POWER`    | Relay state in STATE msg  | R     |
+
+---
+
+### 🔀 Multi-Channel Switch (e.g. Sonoff 4CH, Sonoff Dual)
+
+| State path             | Description                  | R / W |
+| ---------------------- | ---------------------------- | ----- |
+| `stat.POWER1`          | Channel 1 relay state        | R     |
+| `stat.POWER2`          | Channel 2 relay state        | R     |
+| `stat.POWER3`          | Channel 3 relay state        | R     |
+| `stat.POWER4`          | Channel 4 relay state        | R     |
+| `cmnd.POWER1`          | Set channel 1 (ON / OFF)     | R/W   |
+| `cmnd.POWER2`          | Set channel 2 (ON / OFF)     | R/W   |
+| `cmnd.POWER3`          | Set channel 3 (ON / OFF)     | R/W   |
+| `cmnd.POWER4`          | Set channel 4 (ON / OFF)     | R/W   |
+
+---
+
+### 🌡️ Temperature / Humidity Sensor (e.g. Tasmota + DHT22, BME280, DS18B20)
+
+| State path                          | Description            | R / W |
+| ----------------------------------- | ---------------------- | ----- |
+| `tele.SENSOR.Temperature`           | Temperature (°C)       | R     |
+| `tele.SENSOR.Humidity`              | Relative humidity (%)  | R     |
+| `tele.SENSOR.DewPoint`              | Dew point (°C)         | R     |
+| `tele.SENSOR.Pressure`              | Atmospheric pressure (hPa) | R |
+| `tele.STATE.DS18B20.Temperature`    | DS18B20 temperature    | R     |
+
+---
+
+### ⚡ Energy Monitor (e.g. Sonoff Pow, Sonoff Pow R2)
+
+| State path                    | Description                  | R / W |
+| ----------------------------- | ---------------------------- | ----- |
+| `tele.ENERGY.Voltage`         | Mains voltage (V)            | R     |
+| `tele.ENERGY.Current`         | Current draw (A)             | R     |
+| `tele.ENERGY.Power`           | Active power (W)             | R     |
+| `tele.ENERGY.ApparentPower`   | Apparent power (VA)          | R     |
+| `tele.ENERGY.ReactivePower`   | Reactive power (var)         | R     |
+| `tele.ENERGY.Factor`          | Power factor                 | R     |
+| `tele.ENERGY.Today`           | Energy today (kWh)           | R     |
+| `tele.ENERGY.Yesterday`       | Energy yesterday (kWh)       | R     |
+| `tele.ENERGY.Total`           | Total energy (kWh)           | R     |
+
+---
+
+### 🌿 Air Quality / Environmental Sensor (e.g. Tasmota + MHZ19, SGP30, SCD30)
+
+| State path                    | Description              | R / W |
+| ----------------------------- | ------------------------ | ----- |
+| `tele.SENSOR.CarbonDioxide`   | CO₂ concentration (ppm)  | R     |
+| `tele.SENSOR.TVOC`            | Total VOC (ppb)          | R     |
+| `tele.SENSOR.Illuminance`     | Illuminance (lux)        | R     |
+
+---
+
+### 📶 Device Status (all Tasmota devices)
+
+| State path                    | Description                         | R / W |
+| ----------------------------- | ----------------------------------- | ----- |
+| `tele.STATE.Uptime`           | Device uptime                       | R     |
+| `tele.STATE.Wifi.RSSI`        | WiFi signal strength (dBm)          | R     |
+| `tele.STATE.Wifi.Signal`      | WiFi signal quality (%)             | R     |
+| `tele.LWT`                    | Last-Will-Testament (Online/Offline) | R    |
+| `stat.STATUS.Hostname`        | Device hostname                     | R     |
+| `stat.STATUS.IPAddress`       | Device IP address                   | R     |
+
+##
+
+## Compact Architecture Overview
+
+### Architecture Badges
+
+![MQTT Architecture](https://img.shields.io/badge/Architecture-MQTT%20Bridge-orange?style=for-the-badge)
+![Topic Structure](https://img.shields.io/badge/Topics-device--first%20|%20prefix--first-blue?style=for-the-badge)
+![Mode Support](https://img.shields.io/badge/Mode-Server%20|%20Client-green?style=for-the-badge)
+
+### Program Flow
+
+```mermaid
+flowchart LR
+    TH[Tasmota Device] -->|MQTT publish| BRK[MQTT Broker]
+    BRK -->|message| ADP[Adapter]
+    ADP --> OBJ[ioBroker Objects]
+    OBJ --> ST[States]
+
+    UI[User / VIS / Script] -->|setState| ADP2[Adapter]
+    ADP2 -->|MQTT publish| BRK2[MQTT Broker]
+    BRK2 --> TH2[Tasmota Device]
 ```
-1. Link your local repository with the one on GitHub:  
-```bash
-git remote add origin https://github.com/patricknitsch/ioBroker.tasmota
+
+### Internal Flow
+
+```mermaid
+flowchart TB
+    READY[onReady] --> MODE{Mode?}
+    MODE -- server --> SRV[Start aedes MQTT broker]
+    MODE -- client --> CLI[Connect to external broker]
+    SRV --> SUB[Subscribe topics]
+    CLI --> SUB
+    SUB --> MSG[processMqttMessage]
+    MSG --> PARSE{JSON?}
+    PARSE -- yes --> NEST[processJsonObject → nested states]
+    PARSE -- no  --> SCALAR[setStateValue → single state]
+    NEST  --> ROLE[guessStateRole → ioBroker role]
+    SCALAR --> ROLE
+
+    CHG[onStateChange ack=false] --> PUB[publish to MQTT]
 ```
 
-1. Push all files to the GitHub repo:  
-```bash
-git push origin main
-```
-1. Add a new secret under https://github.com/patricknitsch/ioBroker.tasmota/settings/secrets. It must be named `AUTO_MERGE_TOKEN` and contain a personal access token with push access to the repository, e.g. yours. You can create a new token under https://github.com/settings/tokens.
+##
 
-1. Head over to [main.js](main.js) and start programming!
+## 📌 Notes
 
-### Best Practices
-We've collected some [best practices](https://github.com/ioBroker/ioBroker.repositories#development-and-coding-best-practices) regarding ioBroker development and coding in general. If you're new to ioBroker or Node.js, you should
-check them out. If you're already experienced, you should also take a look at them - you might learn something new :)
+- Any device running Tasmota firmware is automatically supported
+- States are created on-the-fly when the first MQTT message arrives
+- Both `device-first` (`device/tele/STATE`) and `prefix-first` (`tele/device/STATE`) topic formats are supported
+- The adapter can run as a standalone MQTT broker (no external broker needed)
 
-### State Roles
-When creating state objects, it is important to use the correct role for the state. The role defines how the state should be interpreted by visualizations and other adapters. For a list of available roles and their meanings, please refer to the [state roles documentation](https://www.iobroker.net/#en/documentation/dev/stateroles.md).
-
-**Important:** Do not invent your own custom role names. If you need a role that is not part of the official list, please contact the ioBroker developer community for guidance and discussion about adding new roles.
-
-### Scripts in `package.json`
-Several npm scripts are predefined for your convenience. You can run them using `npm run <scriptname>`
-| Script name | Description |
-|-------------|-------------|
-| `test:js` | Executes the tests you defined in `*.test.js` files. |
-| `test:package` | Ensures your `package.json` and `io-package.json` are valid. |
-| `test:integration` | Tests the adapter startup with an actual instance of ioBroker. |
-| `test` | Performs a minimal test run on package files and your tests. |
-| `check` | Performs a type-check on your code (without compiling anything). |
-| `lint` | Runs `ESLint` to check your code for formatting errors and potential bugs. |
-| `translate` | Translates texts in your adapter to all required languages, see [`@iobroker/adapter-dev`](https://github.com/ioBroker/adapter-dev#manage-translations) for more details. |
-| `release` | Creates a new release, see [`@alcalzone/release-script`](https://github.com/AlCalzone/release-script#usage) for more details. |
-
-### Writing tests
-When done right, testing code is invaluable, because it gives you the 
-confidence to change your code while knowing exactly if and when 
-something breaks. A good read on the topic of test-driven development 
-is https://hackernoon.com/introduction-to-test-driven-development-tdd-61a13bc92d92. 
-Although writing tests before the code might seem strange at first, but it has very 
-clear upsides.
-
-The template provides you with basic tests for the adapter startup and package files.
-It is recommended that you add your own tests into the mix.
-
-### Publishing the adapter
-Using GitHub Actions, you can enable automatic releases on npm whenever you push a new git tag that matches the form 
-`v<major>.<minor>.<patch>`. We **strongly recommend** that you do. The necessary steps are described in `.github/workflows/test-and-release.yml`.
-
-Since you installed the release script, you can create a new
-release simply by calling:
-```bash
-npm run release
-```
-Additional command line options for the release script are explained in the
-[release-script documentation](https://github.com/AlCalzone/release-script#command-line).
-
-To get your adapter released in ioBroker, please refer to the documentation 
-of [ioBroker.repositories](https://github.com/ioBroker/ioBroker.repositories#requirements-for-adapter-to-get-added-to-the-latest-repository).
-
-### Test the adapter manually with dev-server
-Since you set up `dev-server`, you can use it to run, test and debug your adapter.
-
-You may start `dev-server` by calling from your dev directory:
-```bash
-dev-server watch
-```
-
-The ioBroker.admin interface will then be available at http://localhost:undefined/
-
-Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev-server#command-line) for more details.
+##
 
 ## Changelog
+
 <!--
-Placeholder for the next version (at the beginning of the line):
-### **WORK IN PROGRESS**
+	Placeholder for the next version (at the beginning of the line):
+	### **WORK IN PROGRESS**
 -->
 
+### 0.0.2 (2026-03-24)
+
+- (patricknitsch) Update README with device documentation
+- (patricknitsch) Add admin/tab.html device overview panel
+
 ### 0.0.1 (2026-03-24)
-* (patricknitsch) initial release
+
+- (patricknitsch) initial release
+
+##
 
 ## License
+
 MIT License
 
 Copyright (c) 2026 patricknitsch <patricknitsch@web.de>
