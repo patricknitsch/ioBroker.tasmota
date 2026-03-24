@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# ioBroker.tasmota
-Read and Write between MQTT and Tasmota
-=======
 ![Logo](admin/tasmota.png)
 # ioBroker.tasmota
 
@@ -31,20 +27,20 @@ You can check other adapters for examples or ask in the developer community. Usi
 You are almost done, only a few steps left:
 1. Create a new repository on GitHub with the name `ioBroker.tasmota`
 1. Initialize the current folder as a new git repository:  
-	```bash
-	git init -b main
-	git add .
-	git commit -m "Initial commit"
-	```
+```bash
+git init -b main
+git add .
+git commit -m "Initial commit"
+```
 1. Link your local repository with the one on GitHub:  
-	```bash
-	git remote add origin https://github.com/patricknitsch/ioBroker.tasmota
-	```
+```bash
+git remote add origin https://github.com/patricknitsch/ioBroker.tasmota
+```
 
 1. Push all files to the GitHub repo:  
-	```bash
-	git push origin main
-	```
+```bash
+git push origin main
+```
 1. Add a new secret under https://github.com/patricknitsch/ioBroker.tasmota/settings/secrets. It must be named `AUTO_MERGE_TOKEN` and contain a personal access token with push access to the repository, e.g. yours. You can create a new token under https://github.com/settings/tokens.
 
 1. Head over to [main.js](main.js) and start programming!
@@ -111,11 +107,11 @@ Please refer to the [`dev-server` documentation](https://github.com/ioBroker/dev
 
 ## Changelog
 <!--
-	Placeholder for the next version (at the beginning of the line):
-	### **WORK IN PROGRESS**
+Placeholder for the next version (at the beginning of the line):
+### **WORK IN PROGRESS**
 -->
 
-### **WORK IN PROGRESS**
+### 0.0.1 (2026-03-24)
 * (patricknitsch) initial release
 
 ## License
@@ -140,4 +136,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
->>>>>>> 9126fca (Update)
