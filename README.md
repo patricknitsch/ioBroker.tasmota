@@ -1,4 +1,3 @@
-![Logo](admin/tasmota.png)
 # ioBroker.tasmota
 
 [![NPM version](https://img.shields.io/npm/v/iobroker.tasmota.svg)](https://www.npmjs.com/package/iobroker.tasmota)
