@@ -327,7 +327,7 @@ class Tasmota extends utils.Adapter {
 				baseStateId,
 				'state',
 				safeCommandName,
-				this.guessStateRole(safeCommandName, payload),
+				this.guessStateRole(payload),
 				this.guessStateType(payload),
 			);
 			await this.setStateAsAck(baseStateId, this.parseScalar(payload));
@@ -359,7 +359,7 @@ class Tasmota extends utils.Adapter {
 					stateId,
 					'state',
 					key,
-					this.guessStateRole(key, String(strVal)),
+					this.guessStateRole(String(strVal)),
 					this.guessStateType(String(strVal)),
 				);
 				await this.setStateAsAck(stateId, strVal);
@@ -420,11 +420,11 @@ class Tasmota extends utils.Adapter {
 	 *
 	 * @param {string} stateId - state ID
 	 * @param {string} payload - raw payload
-	 * @param {string} topic - original MQTT topic
+	 * @param {string} _topic - original MQTT topic (unused, kept for API compatibility)
 	 */
-	async setStateValue(stateId, payload, topic) {
+	async setStateValue(stateId, payload, _topic) {
 		const parsed = this.parseScalar(payload);
-		const role = this.guessStateRole(topic.split('/').pop() || '', payload);
+		const role = this.guessStateRole(payload);
 		const type = this.guessStateType(payload);
 		await this.ensureObject(stateId, 'state', stateId.split('.').pop() || stateId, role, type);
 		await this.setStateAsAck(stateId, parsed);
@@ -462,55 +462,17 @@ class Tasmota extends utils.Adapter {
 	}
 
 	/**
-	 * Guess the ioBroker state role from the key name and value.
+	 * Guess the ioBroker state role from the value alone (no key-name heuristics).
+	 * This keeps the adapter generic so it does not need updating when the MQTT
+	 * structure changes.
 	 *
-	 * @param {string} key - state key / name
 	 * @param {string} value - string value
 	 * @returns {string} ioBroker state role
 	 */
-	guessStateRole(key, value) {
-		const k = key.toLowerCase();
-		if (k === 'power' || k === 'power1' || k === 'power2' || k === 'power3' || k === 'power4') {
-			return 'switch.power';
-		}
-		if (k === 'temperature' || k === 'temp') {
-			return 'value.temperature';
-		}
-		if (k === 'humidity') {
-			return 'value.humidity';
-		}
-		if (k === 'pressure') {
-			return 'value.pressure';
-		}
-		if (k === 'voltage') {
-			return 'value.voltage';
-		}
-		if (k === 'current') {
-			return 'value.current';
-		}
-		if (k === 'power' || k === 'activepower' || k === 'apparentpower' || k === 'reactivepower') {
-			return 'value.power';
-		}
-		if (k === 'energy' || k === 'today' || k === 'yesterday' || k === 'total') {
-			return 'value.power.consumption';
-		}
-		if (k === 'rssi' || k === 'wifi' || k === 'signal') {
-			return 'value.rssi';
-		}
-		if (k === 'uptime') {
-			return 'value.time';
-		}
-		if (k === 'lwt' || k === 'status') {
-			return 'indicator.connected';
-		}
-		if (k === 'result') {
-			return 'value';
-		}
-		// Detect boolean-like values
+	guessStateRole(value) {
 		if (value === 'ON' || value === 'OFF' || value === 'true' || value === 'false') {
 			return 'indicator';
 		}
-		// Detect numeric values
 		if (!isNaN(Number(value)) && value.trim() !== '') {
 			return 'value';
 		}
