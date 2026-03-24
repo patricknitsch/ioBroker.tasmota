@@ -58,9 +58,10 @@ class Tasmota extends utils.Adapter {
 	 * Start an MQTT server (broker) using aedes.
 	 */
 	async startMqttServer() {
-		let aedes;
+		let Aedes;
 		try {
-			aedes = require('aedes');
+			// @ts-expect-error - aedes CJS interop: Aedes is a named export at runtime
+			Aedes = require('aedes').Aedes;
 		} catch {
 			this.log.error('aedes module not found. Please install it: npm install aedes');
 			return;
@@ -79,7 +80,7 @@ class Tasmota extends utils.Adapter {
 			};
 		}
 
-		this.aedesServer = aedes.createBroker(aedesOpts);
+		this.aedesServer = await Aedes.createBroker(aedesOpts);
 
 		const port = this.config.port || 1883;
 		const bind = this.config.bind || '0.0.0.0';
@@ -195,13 +196,15 @@ class Tasmota extends utils.Adapter {
 			const topicPrefix = this.config.brokerTopicPrefix;
 			const subscribeTopic = topicPrefix ? `${topicPrefix}/#` : '#';
 
-			this.mqttClient.subscribe(subscribeTopic, { qos: 0 }, err => {
-				if (err) {
-					this.log.error(`Failed to subscribe: ${err.message}`);
-				} else {
-					this.log.info(`Subscribed to MQTT topics: ${subscribeTopic}`);
-				}
-			});
+			if (this.mqttClient) {
+				this.mqttClient.subscribe(subscribeTopic, { qos: 0 }, err => {
+					if (err) {
+						this.log.error(`Failed to subscribe: ${err.message}`);
+					} else {
+						this.log.info(`Subscribed to MQTT topics: ${subscribeTopic}`);
+					}
+				});
+			}
 		});
 
 		this.mqttClient.on('reconnect', () => {
