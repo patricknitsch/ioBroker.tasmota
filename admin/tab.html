@@ -50,16 +50,6 @@
             box-shadow: 0 2px 4px rgba(0,0,0,.3);
         }
         #toolbar .logo { font-size: 18px; font-weight: 500; white-space: nowrap; }
-        #toolbar input[type=text] {
-            background: rgba(255,255,255,.15);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,.4);
-            border-radius: 4px;
-            padding: 5px 10px;
-            font-size: 13px;
-            min-width: 180px;
-        }
-        #toolbar input[type=text]::placeholder { color: rgba(255,255,255,.7); }
         #toolbar .spacer { flex: 1; }
         #connStatus {
             font-size: 12px;
@@ -93,54 +83,27 @@
         /* ── MAIN ── */
         #main { padding: 16px; }
 
-        /* ── SUMMARY BAR ── */
-        #summaryBar {
+        /* ── DEVICE SELECTOR ── */
+        #deviceSelectorArea {
             display: flex;
+            align-items: center;
             gap: 10px;
             margin-bottom: 16px;
             flex-wrap: wrap;
-            align-items: center;
         }
-        .summary-chip {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 5px 14px;
-            font-size: 13px;
-            box-shadow: var(--shadow);
-            white-space: nowrap;
-        }
-        .summary-chip .cnt { font-weight: 700; color: var(--primary); }
-
-        /* ── DEVICE GRID ── */
-        #devicesGrid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 14px;
-        }
-
-        /* ── DEVICE CARD ── */
-        .device-card {
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-        .card-header {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .card-header .device-icon { font-size: 20px; }
-        .card-header .device-name {
-            font-size: 15px;
+        #deviceSelectorArea label {
             font-weight: 500;
-            flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
             white-space: nowrap;
-            color: var(--primary);
+        }
+        #deviceSelect {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 14px;
+            min-width: 200px;
+            cursor: pointer;
         }
         .online-badge {
             font-size: 11px;
@@ -153,30 +116,79 @@
         body.dark .online-badge.online  { background: #1b3a1f; color: #69f0ae; }
         body.dark .online-badge.offline { background: #3e1010; color: #ff8a80; }
 
-        /* ── CARD SECTIONS ── */
-        .card-section {
+        /* ── PLACEHOLDER ── */
+        #placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        /* ── CHANNEL CARDS ── */
+        .channel-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+        .channel-header {
             padding: 10px 16px;
             border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: .5px;
         }
-        .card-section:last-child { border-bottom: none; }
-        .section-label {
+
+        /* ── STATE TABLE ── */
+        .states-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .states-table thead th {
+            padding: 8px 16px;
+            text-align: left;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: .5px;
-            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+        }
+        .states-table tbody tr:not(:last-child) td {
+            border-bottom: 1px solid var(--border);
+        }
+        .states-table tbody tr:hover { background: rgba(0,0,0,.03); }
+        body.dark .states-table tbody tr:hover { background: rgba(255,255,255,.04); }
+        .states-table td {
+            padding: 8px 16px;
+            vertical-align: middle;
+        }
+        .td-key {
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text);
+            word-break: break-all;
+        }
+        .td-val {
+            font-size: 13px;
+            color: var(--text-secondary);
+            word-break: break-all;
+        }
+        .td-act {
+            white-space: nowrap;
+            width: 1%;
+        }
+        .no-states {
+            padding: 14px 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         /* ── POWER BUTTONS ── */
-        .power-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 6px;
-        }
-        .power-row:last-child { margin-bottom: 0; }
-        .power-label { font-size: 13px; flex: 1; color: var(--text-secondary); }
         .power-toggle { display: flex; gap: 4px; }
         .btn-power {
             padding: 4px 16px;
@@ -194,27 +206,6 @@
         body.dark .btn-power.active-on  { box-shadow: 0 0 0 2px var(--on-color),  0 0 0 4px #1e1e1e; }
         body.dark .btn-power.active-off { box-shadow: 0 0 0 2px var(--off-color), 0 0 0 4px #1e1e1e; }
         .btn-power:hover { opacity: .8; }
-        .btn-power:disabled { opacity: .4; cursor: not-allowed; }
-
-        /* ── SENSOR VALUES ── */
-        .sensor-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .sensor-item { display: flex; flex-direction: column; }
-        .sensor-item .s-label { font-size: 11px; color: var(--text-secondary); }
-        .sensor-item .s-value { font-size: 18px; font-weight: 500; }
-        .sensor-item .s-unit  { font-size: 11px; color: var(--text-secondary); }
-
-        /* ── PLACEHOLDER ── */
-        #placeholder {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
-            font-size: 15px;
-            grid-column: 1 / -1;
-        }
 
         /* ── TOAST ── */
         #toast {
@@ -237,7 +228,10 @@
         /* ── RESPONSIVE ── */
         @media (max-width: 480px) {
             #main { padding: 10px; }
-            #devicesGrid { grid-template-columns: 1fr; }
+            .states-table thead { display: none; }
+            .states-table td { display: block; padding: 4px 16px; }
+            .td-key { font-weight: 600; padding-top: 10px; }
+            .td-act { padding-bottom: 10px; }
         }
     </style>
 </head>
@@ -246,8 +240,6 @@
 <!-- TOOLBAR -->
 <div id="toolbar">
     <div class="logo">🏠 Tasmota</div>
-    <input type="text" id="searchInput" data-i18n-placeholder="suchePlatzhalter"
-           oninput="filterDevices()">
     <div class="spacer"></div>
     <button class="btn-toolbar" onclick="refreshAll()" data-i18n="aktualisieren">⟳ Refresh</button>
     <button class="btn-toolbar" id="btnConfig" onclick="openConfig()" data-i18n="konfiguration">⚙ Configuration</button>
@@ -259,23 +251,53 @@
 <!-- MAIN -->
 <div id="main">
 
-    <!-- SUMMARY BAR -->
-    <div id="summaryBar" style="display:none">
-        <div class="summary-chip">
-            <span data-i18n="geraete">Devices</span>: <span class="cnt" id="cntTotal">0</span>
-        </div>
-        <div class="summary-chip">
-            ● <span data-i18n="online">Online</span>: <span class="cnt" id="cntOnline">0</span>
-        </div>
-        <div class="summary-chip">
-            ○ <span data-i18n="offline">Offline</span>: <span class="cnt" id="cntOffline">0</span>
-        </div>
+    <!-- DEVICE SELECTOR -->
+    <div id="deviceSelectorArea">
+        <label for="deviceSelect" data-i18n="geraet">Device:</label>
+        <select id="deviceSelect" onchange="onDeviceSelect()">
+            <option value="" data-i18n="geraetAuswaehlen">-- Select device --</option>
+        </select>
+        <span id="deviceStatusBadge" class="online-badge" style="display:none"></span>
     </div>
 
-    <!-- DEVICES GRID -->
-    <div id="devicesGrid">
-        <div id="placeholder" data-i18n="wirdGeladen">Loading…</div>
-    </div>
+    <!-- PLACEHOLDER (shown when no device is selected or no devices found) -->
+    <div id="placeholder" data-i18n="geraetWaehlen">Please select a device from the list.</div>
+
+    <!-- DEVICE DETAIL PANEL -->
+    <div id="deviceDetail" style="display:none">
+
+        <!-- cmnd channel section -->
+        <div class="channel-card">
+            <div class="channel-header">📤 <span data-i18n="cmndTitel">Commands (cmnd)</span></div>
+            <table class="states-table" id="cmndTable">
+                <thead>
+                    <tr>
+                        <th data-i18n="schluessel">Key</th>
+                        <th data-i18n="wert">Value</th>
+                        <th data-i18n="aktionen">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="cmndBody"></tbody>
+            </table>
+            <div class="no-states" id="cmndEmpty" style="display:none" data-i18n="keineStaten">No states found.</div>
+        </div>
+
+        <!-- stat channel section -->
+        <div class="channel-card">
+            <div class="channel-header">📥 <span data-i18n="statTitel">Status (stat)</span></div>
+            <table class="states-table" id="statTable">
+                <thead>
+                    <tr>
+                        <th data-i18n="schluessel">Key</th>
+                        <th data-i18n="wert">Value</th>
+                    </tr>
+                </thead>
+                <tbody id="statBody"></tbody>
+            </table>
+            <div class="no-states" id="statEmpty" style="display:none" data-i18n="keineStaten">No states found.</div>
+        </div>
+
+    </div><!-- /#deviceDetail -->
 
 </div><!-- /#main -->
 
@@ -284,7 +306,7 @@
 
 <script>
 /* ================================================================
- * Tasmota – Admin Tab  (Device Overview)
+ * Tasmota – Admin Tab  (Device Detail View)
  * ================================================================ */
 'use strict';
 
@@ -299,17 +321,18 @@ const TRANSLATIONS = {
         authFehler:         'Authentifizierung fehlgeschlagen',
         aktualisieren:      '⟳ Aktualisieren',
         konfiguration:      '⚙ Konfiguration',
-        suchePlatzhalter:   'Gerät suchen…',
-        geraete:            'Geräte',
+        geraet:             'Gerät:',
+        geraetAuswaehlen:   '-- Gerät auswählen --',
+        geraetWaehlen:      'Bitte ein Gerät aus der Liste wählen.',
+        keineGeraete:       'Keine Tasmota-Geräte gefunden. Läuft der Adapter?',
         online:             'Online',
         offline:            'Offline',
-        wirdGeladen:        'Wird geladen…',
-        keineGeraete:       'Keine Tasmota-Geräte gefunden. Läuft der Adapter?',
-        leistung:           'Schalter',
-        sensoren:           'Sensoren',
-        energie:            'Energie',
-        verbindung:         'Verbindung',
-        info:               'Info',
+        cmndTitel:          'Befehle (cmnd)',
+        statTitel:          'Status (stat)',
+        schluessel:         'Schlüssel',
+        wert:               'Wert',
+        aktionen:           'Aktionen',
+        keineStaten:        'Keine Zustände vorhanden.',
         an:                 'AN',
         aus:                'AUS',
         fehler:             'Fehler:',
@@ -323,17 +346,18 @@ const TRANSLATIONS = {
         authFehler:         'Auth failed',
         aktualisieren:      '⟳ Refresh',
         konfiguration:      '⚙ Configuration',
-        suchePlatzhalter:   'Search devices…',
-        geraete:            'Devices',
+        geraet:             'Device:',
+        geraetAuswaehlen:   '-- Select device --',
+        geraetWaehlen:      'Please select a device from the list.',
+        keineGeraete:       'No Tasmota devices found. Is the adapter running?',
         online:             'Online',
         offline:            'Offline',
-        wirdGeladen:        'Loading…',
-        keineGeraete:       'No Tasmota devices found. Is the adapter running?',
-        leistung:           'Power',
-        sensoren:           'Sensors',
-        energie:            'Energy',
-        verbindung:         'Connection',
-        info:               'Info',
+        cmndTitel:          'Commands (cmnd)',
+        statTitel:          'Status (stat)',
+        schluessel:         'Key',
+        wert:               'Value',
+        aktionen:           'Actions',
+        keineStaten:        'No states found.',
         an:                 'ON',
         aus:                'OFF',
         fehler:             'Error:',
@@ -453,6 +477,7 @@ let socket    = null;
 let namespace = null;       // e.g. 'tasmota.0'
 let allDevices = [];        // array of device objects
 let allStates  = {};        // map: stateId → {val, ack, ...}
+let selectedDeviceShortId = null;
 
 async function socketCall(method, ...args) {
     if (!socket) throw new Error('No socket');
@@ -581,300 +606,185 @@ async function refreshAll() {
         allStates = await getStatesPattern(namespace + '.*');
     }
 
-    renderDevices();
-    updateSummary();
+    populateDropdown();
+    renderDevice();
 }
 
-// ── State categorisation ───────────────────────────────────────────
+// ── Device dropdown ────────────────────────────────────────────────
 
-/**
- * Returns one of: 'power' | 'sensor' | 'energy' | 'wifi' | 'connection' | 'info' | null
- * @param {string} fullId - full state ID (e.g. tasmota.0.mydevice.stat.POWER)
- */
-function categorizeState(fullId) {
-    const rel   = fullId.replace(namespace + '.', '');       // mydevice.stat.POWER
-    const parts = rel.split('.');
-    const key   = parts[parts.length - 1].toLowerCase();
-    const inEnergy = parts.some(p => p.toLowerCase() === 'energy');
+function populateDropdown() {
+    const select = document.getElementById('deviceSelect');
+    const prev   = select.value;
 
-    if (/^power\d*$/.test(key) && !inEnergy) return 'power';
+    select.innerHTML = `<option value="">${t('geraetAuswaehlen')}</option>`;
 
-    if (key === 'temperature' || key === 'temp') return 'sensor';
-    if (key === 'humidity')   return 'sensor';
-    if (key === 'pressure')   return 'sensor';
-    if (key === 'dewpoint' || key === 'dew') return 'sensor';
-    if (key === 'illuminance' || key === 'lux') return 'sensor';
-    if (key === 'co2' || key === 'voc')  return 'sensor';
-
-    if (key === 'voltage')      return 'energy';
-    if (key === 'current')      return 'energy';
-    if (key === 'power' && inEnergy) return 'energy';
-    if (key === 'activepower' || key === 'apparentpower' || key === 'reactivepower') return 'energy';
-    if (key === 'energy' || key === 'today' || key === 'yesterday' || key === 'total') return 'energy';
-    if (key === 'factor' && inEnergy) return 'energy';
-
-    if (key === 'rssi' || key === 'signal') return 'wifi';
-
-    if (key === 'lwt' || key === 'status') return 'connection';
-
-    if (key === 'uptime' || key === 'startuptime') return 'info';
-    if (key === 'ip' || key === 'mac')  return 'info';
-    if (key === 'module' || key === 'hostname') return 'info';
-    if (key === 'version' || key === 'builddate') return 'info';
-
-    return null;
-}
-
-function sensorIcon(key) {
-    const k = key.toLowerCase();
-    if (k === 'temperature' || k === 'temp') return '🌡️';
-    if (k === 'humidity')   return '💧';
-    if (k === 'pressure')   return '🌬️';
-    if (k === 'dewpoint' || k === 'dew') return '🌫️';
-    if (k === 'illuminance' || k === 'lux') return '☀️';
-    if (k === 'co2')  return '🌿';
-    if (k === 'voc')  return '💨';
-    if (k === 'voltage') return '⚡';
-    if (k === 'current') return '🔌';
-    if (k === 'power' || k === 'activepower' || k === 'apparentpower' || k === 'reactivepower') return '⚡';
-    if (k === 'energy' || k === 'today' || k === 'yesterday' || k === 'total') return '📊';
-    if (k === 'factor') return '📉';
-    if (k === 'rssi' || k === 'signal') return '📶';
-    if (k === 'uptime' || k === 'startuptime') return '⏱️';
-    if (k === 'ip')  return '🌐';
-    if (k === 'mac') return '🔗';
-    return '📌';
-}
-
-function sensorUnit(key) {
-    const k = key.toLowerCase();
-    if (k === 'temperature' || k === 'temp' || k === 'dewpoint' || k === 'dew') return '°C';
-    if (k === 'humidity')   return '%';
-    if (k === 'pressure')   return 'hPa';
-    if (k === 'illuminance' || k === 'lux') return 'lx';
-    if (k === 'co2')  return 'ppm';
-    if (k === 'voltage') return 'V';
-    if (k === 'current') return 'A';
-    if (k === 'power' || k === 'activepower') return 'W';
-    if (k === 'apparentpower') return 'VA';
-    if (k === 'reactivepower') return 'var';
-    if (k === 'energy' || k === 'today' || k === 'yesterday' || k === 'total') return 'kWh';
-    if (k === 'factor') return '';
-    if (k === 'rssi' || k === 'signal') return 'dBm';
-    return '';
-}
-
-function fmtVal(val) {
-    if (val === null || val === undefined) return '—';
-    if (typeof val === 'boolean') return val ? '✔' : '✘';
-    if (typeof val === 'number') {
-        if (!Number.isFinite(val)) return '—';
-        return val % 1 === 0 ? String(val) : val.toFixed(2);
+    for (const dev of allDevices) {
+        const shortId = dev._id.split('.').pop();
+        const name    = dev.common?.name || shortId;
+        const opt     = document.createElement('option');
+        opt.value     = shortId;
+        opt.textContent = (name !== shortId) ? `${name} (${shortId})` : name;
+        if (shortId === prev) opt.selected = true;
+        select.appendChild(opt);
     }
-    return String(val);
-}
 
-// ── Rendering ─────────────────────────────────────────────────────
-
-function renderDevices() {
-    const grid   = document.getElementById('devicesGrid');
-    const filter = (document.getElementById('searchInput').value || '').toLowerCase();
-
-    grid.innerHTML = '';
+    // Sync selectedDeviceShortId unconditionally after dropdown repopulation
+    selectedDeviceShortId = select.value || null;
 
     if (!allDevices.length) {
-        const ph = document.createElement('div');
-        ph.id = 'placeholder';
-        ph.textContent = t('keineGeraete');
-        grid.appendChild(ph);
+        document.getElementById('placeholder').textContent = t('keineGeraete');
+    }
+}
+
+function onDeviceSelect() {
+    const select = document.getElementById('deviceSelect');
+    selectedDeviceShortId = select.value || null;
+    renderDevice();
+}
+
+// ── Device detail rendering ────────────────────────────────────────
+
+function renderDevice() {
+    const detail      = document.getElementById('deviceDetail');
+    const placeholder = document.getElementById('placeholder');
+
+    if (!selectedDeviceShortId) {
+        detail.style.display = 'none';
+        placeholder.style.display = '';
+        placeholder.textContent = allDevices.length
+            ? t('geraetWaehlen')
+            : t('keineGeraete');
         return;
     }
 
-    let shown = 0;
-    for (const device of allDevices) {
-        const shortId    = device._id.split('.').pop();
-        const deviceName = device.common?.name || shortId;
-        if (filter && !deviceName.toLowerCase().includes(filter) && !shortId.toLowerCase().includes(filter)) {
-            continue;
-        }
-        grid.appendChild(buildDeviceCard(device._id, shortId, deviceName));
-        shown++;
-    }
+    const devicePrefix = namespace + '.' + selectedDeviceShortId + '.';
 
-    if (!shown) {
-        const ph = document.createElement('div');
-        ph.id = 'placeholder';
-        ph.textContent = t('keineGeraete');
-        grid.appendChild(ph);
-    }
-}
-
-function filterDevices() { renderDevices(); }
-
-function buildDeviceCard(deviceObjId, shortId, deviceName) {
-    const prefix = deviceObjId + '.';
-
-    // ---- Collect and categorise states ----
-    const powerStates  = {};   // relPath → {id, val, key}
-    const sensorStates = {};
-    const energyStates = {};
-    const wifiStates   = {};
-    const infoStates   = {};
-    let   isOnline     = null;
+    // Collect cmnd and stat states only (ignore tele and others)
+    const cmndStates = {};
+    const statStates = {};
 
     for (const [id, st] of Object.entries(allStates)) {
-        if (!id.startsWith(prefix)) continue;
-        const relParts = id.replace(prefix, '').split('.');
-        const key      = relParts[relParts.length - 1];
-        const entry    = { id, val: st?.val, key };
-        const cat      = categorizeState(id);
-
-        if (cat === 'power')      powerStates[relParts.join('.')]  = entry;
-        else if (cat === 'sensor') sensorStates[relParts.join('.')] = entry;
-        else if (cat === 'energy') energyStates[relParts.join('.')] = entry;
-        else if (cat === 'wifi')   wifiStates[relParts.join('.')]   = entry;
-        else if (cat === 'info')   infoStates[relParts.join('.')]   = entry;
-        else if (cat === 'connection') {
-            if (isOnline === null) {
-                const v = st?.val;
-                if (typeof v === 'boolean') isOnline = v;
-                else if (typeof v === 'string') isOnline = v.toLowerCase() === 'online';
-            }
+        if (!id.startsWith(devicePrefix)) continue;
+        const rel   = id.replace(devicePrefix, '');
+        const parts = rel.split('.');
+        if (parts[0] === 'cmnd' && parts.length > 1) {
+            cmndStates[parts.slice(1).join('.')] = { id, val: st?.val };
+        } else if (parts[0] === 'stat' && parts.length > 1) {
+            statStates[parts.slice(1).join('.')] = { id, val: st?.val };
         }
     }
 
-    // ---- Build DOM ----
-    const card = document.createElement('div');
-    card.className = 'device-card';
-    card.id = 'card-' + safeCssId(shortId);
+    renderStateSection('cmndBody', 'cmndTable', 'cmndEmpty', cmndStates, true);
+    renderStateSection('statBody', 'statTable', 'statEmpty', statStates, false);
 
-    // Header
-    const hdr = document.createElement('div');
-    hdr.className = 'card-header';
-    hdr.innerHTML = '<span class="device-icon">🔌</span>';
-    const nameSp = document.createElement('span');
-    nameSp.className = 'device-name';
-    nameSp.textContent = deviceName;
-    hdr.appendChild(nameSp);
-    if (isOnline !== null) {
-        const badge = document.createElement('span');
-        badge.className = 'online-badge ' + (isOnline ? 'online' : 'offline');
-        badge.textContent = isOnline ? '● ' + t('online') : '○ ' + t('offline');
-        hdr.appendChild(badge);
-    }
-    card.appendChild(hdr);
+    placeholder.style.display = 'none';
+    detail.style.display = '';
 
-    // Power section
-    if (Object.keys(powerStates).length) {
-        const sec = document.createElement('div');
-        sec.className = 'card-section';
-        const lbl = document.createElement('div');
-        lbl.className = 'section-label';
-        lbl.textContent = '🔌 ' + t('leistung');
-        sec.appendChild(lbl);
-
-        for (const [, info] of Object.entries(powerStates)) {
-            const row   = document.createElement('div');
-            row.className = 'power-row';
-
-            const labelEl = document.createElement('span');
-            labelEl.className = 'power-label';
-            labelEl.textContent = info.key.toUpperCase();
-            row.appendChild(labelEl);
-
-            const isOn  = info.val === true  || String(info.val).toUpperCase() === 'ON';
-            const isOff = info.val === false || String(info.val).toUpperCase() === 'OFF';
-
-            const tgl = document.createElement('div');
-            tgl.className = 'power-toggle';
-
-            const btnOn  = document.createElement('button');
-            btnOn.className  = 'btn-power on'  + (isOn  ? ' active-on'  : '');
-            btnOn.textContent = t('an');
-            btnOn.onclick = () => sendPower(info.id, true);
-
-            const btnOff = document.createElement('button');
-            btnOff.className  = 'btn-power off' + (isOff ? ' active-off' : '');
-            btnOff.textContent = t('aus');
-            btnOff.onclick = () => sendPower(info.id, false);
-
-            tgl.appendChild(btnOn);
-            tgl.appendChild(btnOff);
-            row.appendChild(tgl);
-            sec.appendChild(row);
-        }
-        card.appendChild(sec);
-    }
-
-    // Sensor section
-    if (Object.keys(sensorStates).length) {
-        card.appendChild(buildValueSection('🌡️ ' + t('sensoren'), sensorStates));
-    }
-
-    // Energy section
-    if (Object.keys(energyStates).length) {
-        card.appendChild(buildValueSection('⚡ ' + t('energie'), energyStates));
-    }
-
-    // WiFi/connectivity section
-    if (Object.keys(wifiStates).length) {
-        card.appendChild(buildValueSection('📶 ' + t('verbindung'), wifiStates));
-    }
-
-    // Info section
-    if (Object.keys(infoStates).length) {
-        card.appendChild(buildValueSection('ℹ️ ' + t('info'), infoStates));
-    }
-
-    // Empty-card fallback
-    if (card.children.length === 1) {
-        const sec = document.createElement('div');
-        sec.className = 'card-section';
-        sec.style.color    = 'var(--text-secondary)';
-        sec.style.fontSize = '12px';
-        sec.textContent = '—';
-        card.appendChild(sec);
-    }
-
-    return card;
+    updateDeviceStatus();
 }
 
-function buildValueSection(title, states) {
-    const sec = document.createElement('div');
-    sec.className = 'card-section';
+/**
+ * Fill a state table with rows.
+ *
+ * @param {string} tbodyId   - tbody element ID
+ * @param {string} tableId   - table element ID (hidden when empty)
+ * @param {string} emptyId   - "no states" element ID
+ * @param {Object} states    - map of key → {id, val}
+ * @param {boolean} showActions - whether to render toggle buttons for boolean values
+ */
+function renderStateSection(tbodyId, tableId, emptyId, states, showActions) {
+    const tbody = document.getElementById(tbodyId);
+    const table = document.getElementById(tableId);
+    const empty = document.getElementById(emptyId);
 
-    const lbl = document.createElement('div');
-    lbl.className = 'section-label';
-    lbl.textContent = title;
-    sec.appendChild(lbl);
+    tbody.innerHTML = '';
 
-    const grid = document.createElement('div');
-    grid.className = 'sensor-grid';
+    const keys = Object.keys(states).sort();
 
-    for (const [, info] of Object.entries(states)) {
-        const item = document.createElement('div');
-        item.className = 'sensor-item';
-
-        const sl = document.createElement('div');
-        sl.className = 's-label';
-        sl.textContent = sensorIcon(info.key) + ' ' + info.key;
-
-        const sv = document.createElement('div');
-        sv.className = 's-value';
-        sv.textContent = fmtVal(info.val);
-
-        const su = document.createElement('div');
-        su.className = 's-unit';
-        su.textContent = sensorUnit(info.key);
-
-        item.appendChild(sl);
-        item.appendChild(sv);
-        item.appendChild(su);
-        grid.appendChild(item);
+    if (!keys.length) {
+        table.style.display = 'none';
+        empty.style.display = '';
+        return;
     }
 
-    sec.appendChild(grid);
-    return sec;
+    table.style.display = '';
+    empty.style.display = 'none';
+
+    for (const key of keys) {
+        const info = states[key];
+        const tr   = document.createElement('tr');
+
+        // Key cell
+        const tdKey = document.createElement('td');
+        tdKey.className  = 'td-key';
+        tdKey.textContent = key;
+        tr.appendChild(tdKey);
+
+        // Value cell
+        const tdVal = document.createElement('td');
+        tdVal.className  = 'td-val';
+        tdVal.textContent = fmtVal(info.val);
+        tr.appendChild(tdVal);
+
+        // Actions cell (cmnd section only)
+        if (showActions) {
+            const tdAct = document.createElement('td');
+            tdAct.className = 'td-act';
+            const val    = info.val;
+            const valUC  = String(val).toUpperCase();
+            const isBool = val === true || val === false
+                || valUC === 'ON'
+                || valUC === 'OFF';
+            if (isBool) {
+                const isOn  = val === true || valUC === 'ON';
+                const tgl   = document.createElement('div');
+                tgl.className = 'power-toggle';
+
+                const btnOn  = document.createElement('button');
+                btnOn.className  = 'btn-power on'  + (isOn  ? ' active-on'  : '');
+                btnOn.textContent = t('an');
+                btnOn.onclick = () => sendPower(info.id, true);
+
+                const btnOff = document.createElement('button');
+                btnOff.className  = 'btn-power off' + (!isOn ? ' active-off' : '');
+                btnOff.textContent = t('aus');
+                btnOff.onclick = () => sendPower(info.id, false);
+
+                tgl.appendChild(btnOn);
+                tgl.appendChild(btnOff);
+                tdAct.appendChild(tgl);
+            }
+            tr.appendChild(tdAct);
+        }
+
+        tbody.appendChild(tr);
+    }
+}
+
+// ── Device online status ───────────────────────────────────────────
+
+function updateDeviceStatus() {
+    if (!selectedDeviceShortId) return;
+    const badge        = document.getElementById('deviceStatusBadge');
+    const devicePrefix = namespace + '.' + selectedDeviceShortId + '.';
+    let   isOnline     = null;
+
+    // Look for any LWT state (in any channel) to determine online status
+    for (const [id, st] of Object.entries(allStates)) {
+        if (!id.startsWith(devicePrefix)) continue;
+        if (id.split('.').pop().toLowerCase() !== 'lwt') continue;
+        const v = st?.val;
+        if (typeof v === 'boolean') { isOnline = v; break; }
+        if (typeof v === 'string')  { isOnline = v.toLowerCase() === 'online'; break; }
+    }
+
+    if (isOnline !== null) {
+        badge.style.display = '';
+        badge.className  = 'online-badge ' + (isOnline ? 'online' : 'offline');
+        badge.textContent = isOnline ? '● ' + t('online') : '○ ' + t('offline');
+    } else {
+        badge.style.display = 'none';
+    }
 }
 
 // ── Power control ──────────────────────────────────────────────────
@@ -905,56 +815,23 @@ function handleStateChange(id, state) {
     // Update in-memory cache
     allStates[id] = state;
 
-    // Identify the device (first segment after namespace)
-    const shortId    = id.replace(namespace + '.', '').split('.')[0];
-    const deviceObjId = namespace + '.' + shortId;
-    const cardEl     = document.getElementById('card-' + safeCssId(shortId));
-    if (!cardEl) return;
-
-    const device     = allDevices.find(d => d._id === deviceObjId);
-    if (!device) return;
-
-    const deviceName = device.common?.name || shortId;
-    const newCard    = buildDeviceCard(deviceObjId, shortId, deviceName);
-    cardEl.replaceWith(newCard);
-
-    updateSummary();
-}
-
-// ── Summary bar ────────────────────────────────────────────────────
-
-function updateSummary() {
-    const bar = document.getElementById('summaryBar');
-    if (!allDevices.length) { bar.style.display = 'none'; return; }
-
-    bar.style.display = '';
-    document.getElementById('cntTotal').textContent = allDevices.length;
-
-    let cntOnline = 0, cntOffline = 0;
-    for (const device of allDevices) {
-        const pfx = device._id + '.';
-        let devOnline = null;
-        for (const [id, st] of Object.entries(allStates)) {
-            if (!id.startsWith(pfx)) continue;
-            const k = id.split('.').pop().toLowerCase();
-            if (k === 'lwt' || k === 'status') {
-                const v = st?.val;
-                if (typeof v === 'boolean') { devOnline = v; break; }
-                if (typeof v === 'string')  { devOnline = v.toLowerCase() === 'online'; break; }
-            }
-        }
-        if (devOnline === true)  cntOnline++;
-        else if (devOnline === false) cntOffline++;
+    // Re-render only if the changed state belongs to the selected device
+    const shortId = id.replace(namespace + '.', '').split('.')[0];
+    if (shortId === selectedDeviceShortId) {
+        renderDevice();
     }
-    document.getElementById('cntOnline').textContent  = cntOnline;
-    document.getElementById('cntOffline').textContent = cntOffline;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
 
-function safeCssId(id) {
-    // Replace characters that are invalid in CSS identifiers
-    return id.replace(/[^A-Za-z0-9_-]/g, '_');
+function fmtVal(val) {
+    if (val === null || val === undefined) return '—';
+    if (typeof val === 'boolean') return val ? '✔' : '✘';
+    if (typeof val === 'number') {
+        if (!Number.isFinite(val)) return '—';
+        return val % 1 === 0 ? String(val) : val.toFixed(2);
+    }
+    return String(val);
 }
 
 let toastTimer = null;
