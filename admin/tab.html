@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasmota Devices</title>
+    <style>
+        :root {
+            --primary: #ff6d00;
+            --primary-dark: #e65100;
+            --accent: #1976d2;
+            --bg: #f5f5f5;
+            --card-bg: #ffffff;
+            --text: #212121;
+            --text-secondary: #757575;
+            --border: #e0e0e0;
+            --success: #388e3c;
+            --warning: #f57c00;
+            --danger: #d32f2f;
+            --on-color: #388e3c;
+            --off-color: #757575;
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0,0,0,.1);
+        }
+        body.dark {
+            --bg: #121212;
+            --card-bg: #1e1e1e;
+            --text: #e0e0e0;
+            --text-secondary: #9e9e9e;
+            --border: #333333;
+            --shadow: 0 2px 8px rgba(0,0,0,.5);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        /* ── TOOLBAR ── */
+        #toolbar {
+            background: var(--primary);
+            color: #fff;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,.3);
+        }
+        #toolbar .logo { font-size: 18px; font-weight: 500; white-space: nowrap; }
+        #toolbar input[type=text] {
+            background: rgba(255,255,255,.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.4);
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 13px;
+            min-width: 180px;
+        }
+        #toolbar input[type=text]::placeholder { color: rgba(255,255,255,.7); }
+        #toolbar .spacer { flex: 1; }
+        #connStatus {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        #connStatus .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #9e9e9e;
+            display: inline-block;
+        }
+        #connStatus.online .dot  { background: #69f0ae; }
+        #connStatus.offline .dot { background: #ef5350; }
+        .btn-toolbar {
+            background: rgba(255,255,255,.2);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.5);
+            border-radius: 4px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background .2s;
+        }
+        .btn-toolbar:hover { background: rgba(255,255,255,.35); }
+
+        /* ── MAIN ── */
+        #main { padding: 16px; }
+
+        /* ── SUMMARY BAR ── */
+        #summaryBar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .summary-chip {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 13px;
+            box-shadow: var(--shadow);
+            white-space: nowrap;
+        }
+        .summary-chip .cnt { font-weight: 700; color: var(--primary); }
+
+        /* ── DEVICE GRID ── */
+        #devicesGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 14px;
+        }
+
+        /* ── DEVICE CARD ── */
+        .device-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-header .device-icon { font-size: 20px; }
+        .card-header .device-name {
+            font-size: 15px;
+            font-weight: 500;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--primary);
+        }
+        .online-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+        .online-badge.online  { background: #e8f5e9; color: #2e7d32; }
+        .online-badge.offline { background: #ffebee; color: #c62828; }
+        body.dark .online-badge.online  { background: #1b3a1f; color: #69f0ae; }
+        body.dark .online-badge.offline { background: #3e1010; color: #ff8a80; }
+
+        /* ── CARD SECTIONS ── */
+        .card-section {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-section:last-child { border-bottom: none; }
+        .section-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 8px;
+        }
+
+        /* ── POWER BUTTONS ── */
+        .power-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .power-row:last-child { margin-bottom: 0; }
+        .power-label { font-size: 13px; flex: 1; color: var(--text-secondary); }
+        .power-toggle { display: flex; gap: 4px; }
+        .btn-power {
+            padding: 4px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .2s;
+        }
+        .btn-power.on  { background: var(--on-color);  color: #fff; }
+        .btn-power.off { background: var(--off-color); color: #fff; }
+        .btn-power.active-on  { box-shadow: 0 0 0 2px var(--on-color),  0 0 0 4px white; }
+        .btn-power.active-off { box-shadow: 0 0 0 2px var(--off-color), 0 0 0 4px white; }
+        body.dark .btn-power.active-on  { box-shadow: 0 0 0 2px var(--on-color),  0 0 0 4px #1e1e1e; }
+        body.dark .btn-power.active-off { box-shadow: 0 0 0 2px var(--off-color), 0 0 0 4px #1e1e1e; }
+        .btn-power:hover { opacity: .8; }
+        .btn-power:disabled { opacity: .4; cursor: not-allowed; }
+
+        /* ── SENSOR VALUES ── */
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .sensor-item { display: flex; flex-direction: column; }
+        .sensor-item .s-label { font-size: 11px; color: var(--text-secondary); }
+        .sensor-item .s-value { font-size: 18px; font-weight: 500; }
+        .sensor-item .s-unit  { font-size: 11px; color: var(--text-secondary); }
+
+        /* ── PLACEHOLDER ── */
+        #placeholder {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 15px;
+            grid-column: 1 / -1;
+        }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #323232;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: transform .3s;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        #toast.show  { transform: translateX(-50%) translateY(0); }
+        #toast.error { background: var(--danger); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 480px) {
+            #main { padding: 10px; }
+            #devicesGrid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+    <div class="logo">🏠 Tasmota</div>
+    <input type="text" id="searchInput" data-i18n-placeholder="suchePlatzhalter"
+           oninput="filterDevices()">
+    <div class="spacer"></div>
+    <button class="btn-toolbar" onclick="refreshAll()" data-i18n="aktualisieren">⟳ Refresh</button>
+    <button class="btn-toolbar" id="btnConfig" onclick="openConfig()" data-i18n="konfiguration">⚙ Configuration</button>
+    <div id="connStatus">
+        <span class="dot"></span><span id="connLabel" data-i18n="verbinde">Connecting…</span>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+    <!-- SUMMARY BAR -->
+    <div id="summaryBar" style="display:none">
+        <div class="summary-chip">
+            <span data-i18n="geraete">Devices</span>: <span class="cnt" id="cntTotal">0</span>
+        </div>
+        <div class="summary-chip">
+            ● <span data-i18n="online">Online</span>: <span class="cnt" id="cntOnline">0</span>
+        </div>
+        <div class="summary-chip">
+            ○ <span data-i18n="offline">Offline</span>: <span class="cnt" id="cntOffline">0</span>
+        </div>
+    </div>
+
+    <!-- DEVICES GRID -->
+    <div id="devicesGrid">
+        <div id="placeholder" data-i18n="wirdGeladen">Loading…</div>
+    </div>
+
+</div><!-- /#main -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+/* ================================================================
+ * Tasmota – Admin Tab  (Device Overview)
+ * ================================================================ */
+'use strict';
+
+// ── i18n ──────────────────────────────────────────────────────────
+
+const TRANSLATIONS = {
+    de: {
+        verbinde:           'Verbinde…',
+        verbunden:          'Verbunden',
+        getrennt:           'Getrennt',
+        socketFehler:       'Socket nicht verfügbar',
+        authFehler:         'Authentifizierung fehlgeschlagen',
+        aktualisieren:      '⟳ Aktualisieren',
+        konfiguration:      '⚙ Konfiguration',
+        suchePlatzhalter:   'Gerät suchen…',
+        geraete:            'Geräte',
+        online:             'Online',
+        offline:            'Offline',
+        wirdGeladen:        'Wird geladen…',
+        keineGeraete:       'Keine Tasmota-Geräte gefunden. Läuft der Adapter?',
+        leistung:           'Schalter',
+        sensoren:           'Sensoren',
+        energie:            'Energie',
+        verbindung:         'Verbindung',
+        info:               'Info',
+        an:                 'AN',
+        aus:                'AUS',
+        fehler:             'Fehler:',
+        befehlGesendet:     'Befehl gesendet',
+    },
+    en: {
+        verbinde:           'Connecting…',
+        verbunden:          'Connected',
+        getrennt:           'Disconnected',
+        socketFehler:       'Socket unavailable',
+        authFehler:         'Auth failed',
+        aktualisieren:      '⟳ Refresh',
+        konfiguration:      '⚙ Configuration',
+        suchePlatzhalter:   'Search devices…',
+        geraete:            'Devices',
+        online:             'Online',
+        offline:            'Offline',
+        wirdGeladen:        'Loading…',
+        keineGeraete:       'No Tasmota devices found. Is the adapter running?',
+        leistung:           'Power',
+        sensoren:           'Sensors',
+        energie:            'Energy',
+        verbindung:         'Connection',
+        info:               'Info',
+        an:                 'ON',
+        aus:                'OFF',
+        fehler:             'Error:',
+        befehlGesendet:     'Command sent',
+    },
+};
+
+let lang = 'en';
+
+function detectLang() {
+    try {
+        const sysLang = window.parent?.sysConfig?.common?.language
+            || window.parent?.systemLang
+            || navigator.language || 'en';
+        lang = sysLang.toLowerCase().startsWith('de') ? 'de' : 'en';
+    } catch {
+        lang = (navigator.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en';
+    }
+}
+
+function t(key) {
+    const tr = TRANSLATIONS[lang] || TRANSLATIONS.en;
+    return tr[key] !== undefined ? tr[key] : (TRANSLATIONS.en[key] || key);
+}
+
+function translatePage() {
+    for (const el of document.querySelectorAll('[data-i18n]')) {
+        el.textContent = t(el.getAttribute('data-i18n'));
+    }
+    for (const el of document.querySelectorAll('[data-i18n-placeholder]')) {
+        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+    }
+}
+
+// ── Theme ─────────────────────────────────────────────────────────
+
+const DARK_THEMES = ['dark', 'blue'];
+
+function resolveTheme() {
+    try {
+        const th = localStorage.getItem('App.theme');
+        if (th) return th === 'dark';
+        const tn = localStorage.getItem('App.themeName');
+        if (tn) return DARK_THEMES.includes(tn);
+    } catch { /* storage blocked */ }
+
+    try {
+        const body = window.parent?.document?.body;
+        const html = window.parent?.document?.documentElement;
+        if (body) {
+            if ((body.className  || '').toLowerCase().includes('dark')) return true;
+            if ((html?.className || '').toLowerCase().includes('dark')) return true;
+            if (body.getAttribute('data-theme') === 'dark') return true;
+        }
+    } catch { /* cross-origin */ }
+
+    try {
+        const p = window.parent;
+        for (const el of [
+            p?.document?.getElementById('root'),
+            p?.document?.querySelector('.App'),
+            p?.document?.body,
+        ].filter(Boolean)) {
+            const bg = p.getComputedStyle(el).backgroundColor;
+            const m = bg && bg.match(/[\d.]+/g);
+            if (m && m.length >= 3) {
+                const a = m.length >= 4 ? parseFloat(m[3]) : 1;
+                if (a > 0 && (parseInt(m[0]) + parseInt(m[1]) + parseInt(m[2])) / 3 < 80) return true;
+            }
+        }
+    } catch { /* cross-origin */ }
+
+    return false;
+}
+
+function applyTheme(isDark) { document.body.classList.toggle('dark', !!isDark); }
+
+function detectTheme() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const react = params.get('react');
+        if (react !== null) { applyTheme(DARK_THEMES.includes(react)); return; }
+    } catch { /* ignore */ }
+    applyTheme(resolveTheme());
+}
+
+function watchTheme() {
+    window.addEventListener('storage', e => {
+        if (e.key === 'App.theme') applyTheme(e.newValue === 'dark');
+        else if (e.key === 'App.themeName') applyTheme(DARK_THEMES.includes(e.newValue));
+    });
+    window.addEventListener('message', e => {
+        if (e.data === 'updateTheme') applyTheme(resolveTheme());
+    });
+    try {
+        const targets = [
+            window.parent?.document?.body,
+            window.parent?.document?.documentElement,
+        ].filter(Boolean);
+        if (targets.length) {
+            const obs = new MutationObserver(() => applyTheme(resolveTheme()));
+            for (const el of targets) {
+                obs.observe(el, { attributes: true, attributeFilter: ['class', 'data-theme', 'data-bs-theme', 'style'] });
+            }
+        }
+    } catch { /* cross-origin */ }
+    let _lastDark = document.body.classList.contains('dark');
+    setInterval(() => {
+        const isDark = resolveTheme();
+        if (isDark !== _lastDark) { _lastDark = isDark; applyTheme(isDark); }
+    }, 5000);
+}
+
+// ── Socket helpers ─────────────────────────────────────────────────
+
+let socket    = null;
+let namespace = null;       // e.g. 'tasmota.0'
+let allDevices = [];        // array of device objects
+let allStates  = {};        // map: stateId → {val, ack, ...}
+
+async function socketCall(method, ...args) {
+    if (!socket) throw new Error('No socket');
+    if (typeof socket[method] === 'function') return socket[method](...args);
+    return new Promise((resolve, reject) => {
+        socket.emit(method, ...args, (err, result) => {
+            if (err) reject(typeof err === 'string' ? new Error(err) : err);
+            else resolve(result);
+        });
+    });
+}
+
+async function getStatesPattern(pattern) {
+    try { return await socketCall('getStates', pattern) || {}; } catch { return {}; }
+}
+
+// ── Socket init ────────────────────────────────────────────────────
+
+function initSocket() {
+    detectLang();
+    detectTheme();
+    watchTheme();
+    translatePage();
+
+    // Try Admin 7 React parent socket (polls up to 3 s)
+    let attempts = 0;
+    const check = () => {
+        if (window.parent && window.parent.socket) {
+            socket = window.parent.socket;
+            onSocketConnected();
+        } else if (attempts++ < 30) {
+            setTimeout(check, 100);
+        } else {
+            // Fallback: load socket.io from Admin
+            const s = document.createElement('script');
+            s.src = '../../lib/js/socket.io.js';
+            s.onload = () => connectSocketIO();
+            s.onerror = () => setConnStatus(false, t('socketFehler'));
+            document.head.appendChild(s);
+        }
+    };
+    check();
+}
+
+function connectSocketIO() {
+    const loc  = window.location;
+    const path = loc.pathname.replace(/\/[^/]*$/, '/') + 'socket.io';
+    const io   = window.io || window.socket_io;
+    if (!io) { setConnStatus(false, t('socketFehler')); return; }
+    socket = io.connect(loc.origin, { path, query: 'ws=true' });
+    socket.on('connect', () => {
+        socket.emit('authenticate', (err, isOk) => {
+            if (isOk) onSocketConnected();
+            else setConnStatus(false, t('authFehler'));
+        });
+    });
+    socket.on('disconnect', () => setConnStatus(false, t('getrennt')));
+}
+
+function onSocketConnected() {
+    setConnStatus(true, t('verbunden'));
+
+    // Detect instance from URL param ?instance=N
+    const urlParams = new URLSearchParams(window.location.search);
+    const instNum = urlParams.get('instance') || '0';
+    namespace = 'tasmota.' + instNum;
+
+    // Live state changes
+    if (typeof socket.on === 'function') {
+        socket.on('stateChange', (id, state) => {
+            if (namespace && id.startsWith(namespace + '.')) {
+                handleStateChange(id, state);
+            }
+        });
+    }
+
+    refreshAll();
+}
+
+// ── Config button ──────────────────────────────────────────────────
+
+function openConfig() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const instNum = urlParams.get('instance') || '0';
+    window.parent.location.href =
+        window.location.origin + '/#tab-instances/config/system.adapter.tasmota.' + instNum;
+}
+
+// ── Connection status indicator ────────────────────────────────────
+
+function setConnStatus(online, label) {
+    const el = document.getElementById('connStatus');
+    el.className = online ? 'online' : 'offline';
+    document.getElementById('connLabel').textContent = label;
+}
+
+// ── Device loading ─────────────────────────────────────────────────
+
+async function refreshAll() {
+    if (!namespace) return;
+    allDevices = [];
+    allStates  = {};
+
+    try {
+        const view = await socketCall('getObjectView', 'system', 'device', {
+            startkey: namespace + '.',
+            endkey:   namespace + '.\u9999',
+        });
+        if (view && view.rows) {
+            const nsDepth = namespace.split('.').length;
+            for (const row of view.rows) {
+                const obj = row.value;
+                if (!obj) continue;
+                // Only direct children of the namespace (one level deeper)
+                if (obj._id.split('.').length === nsDepth + 1) {
+                    allDevices.push(obj);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('loadDevices error:', e);
+    }
+
+    // Load all states at once
+    if (allDevices.length > 0) {
+        allStates = await getStatesPattern(namespace + '.*');
+    }
+
+    renderDevices();
+    updateSummary();
+}
+
+// ── State categorisation ───────────────────────────────────────────
+
+/**
+ * Returns one of: 'power' | 'sensor' | 'energy' | 'wifi' | 'connection' | 'info' | null
+ * @param {string} fullId - full state ID (e.g. tasmota.0.mydevice.stat.POWER)
+ */
+function categorizeState(fullId) {
+    const rel   = fullId.replace(namespace + '.', '');       // mydevice.stat.POWER
+    const parts = rel.split('.');
+    const key   = parts[parts.length - 1].toLowerCase();
+    const inEnergy = parts.some(p => p.toLowerCase() === 'energy');
+
+    if (/^power\d*$/.test(key) && !inEnergy) return 'power';
+
+    if (key === 'temperature' || key === 'temp') return 'sensor';
+    if (key === 'humidity')   return 'sensor';
+    if (key === 'pressure')   return 'sensor';
+    if (key === 'dewpoint' || key === 'dew') return 'sensor';
+    if (key === 'illuminance' || key === 'lux') return 'sensor';
+    if (key === 'co2' || key === 'voc')  return 'sensor';
+
+    if (key === 'voltage')      return 'energy';
+    if (key === 'current')      return 'energy';
+    if (key === 'power' && inEnergy) return 'energy';
+    if (key === 'activepower' || key === 'apparentpower' || key === 'reactivepower') return 'energy';
+    if (key === 'energy' || key === 'today' || key === 'yesterday' || key === 'total') return 'energy';
+    if (key === 'factor' && inEnergy) return 'energy';
+
+    if (key === 'rssi' || key === 'signal') return 'wifi';
+
+    if (key === 'lwt' || key === 'status') return 'connection';
+
+    if (key === 'uptime' || key === 'startuptime') return 'info';
+    if (key === 'ip' || key === 'mac')  return 'info';
+    if (key === 'module' || key === 'hostname') return 'info';
+    if (key === 'version' || key === 'builddate') return 'info';
+
+    return null;
+}
+
+function sensorIcon(key) {
+    const k = key.toLowerCase();
+    if (k === 'temperature' || k === 'temp') return '🌡️';
+    if (k === 'humidity')   return '💧';
+    if (k === 'pressure')   return '🌬️';
+    if (k === 'dewpoint' || k === 'dew') return '🌫️';
+    if (k === 'illuminance' || k === 'lux') return '☀️';
+    if (k === 'co2')  return '🌿';
+    if (k === 'voc')  return '💨';
+    if (k === 'voltage') return '⚡';
+    if (k === 'current') return '🔌';
+    if (k === 'power' || k === 'activepower' || k === 'apparentpower' || k === 'reactivepower') return '⚡';
+    if (k === 'energy' || k === 'today' || k === 'yesterday' || k === 'total') return '📊';
+    if (k === 'factor') return '📉';
+    if (k === 'rssi' || k === 'signal') return '📶';
+    if (k === 'uptime' || k === 'startuptime') return '⏱️';
+    if (k === 'ip')  return '🌐';
+    if (k === 'mac') return '🔗';
+    return '📌';
+}
+
+function sensorUnit(key) {
+    const k = key.toLowerCase();
+    if (k === 'temperature' || k === 'temp' || k === 'dewpoint' || k === 'dew') return '°C';
+    if (k === 'humidity')   return '%';
+    if (k === 'pressure')   return 'hPa';
+    if (k === 'illuminance' || k === 'lux') return 'lx';
+    if (k === 'co2')  return 'ppm';
+    if (k === 'voltage') return 'V';
+    if (k === 'current') return 'A';
+    if (k === 'power' || k === 'activepower') return 'W';
+    if (k === 'apparentpower') return 'VA';
+    if (k === 'reactivepower') return 'var';
+    if (k === 'energy' || k === 'today' || k === 'yesterday' || k === 'total') return 'kWh';
+    if (k === 'factor') return '';
+    if (k === 'rssi' || k === 'signal') return 'dBm';
+    return '';
+}
+
+function fmtVal(val) {
+    if (val === null || val === undefined) return '—';
+    if (typeof val === 'boolean') return val ? '✔' : '✘';
+    if (typeof val === 'number') {
+        if (!Number.isFinite(val)) return '—';
+        return val % 1 === 0 ? String(val) : val.toFixed(2);
+    }
+    return String(val);
+}
+
+// ── Rendering ─────────────────────────────────────────────────────
+
+function renderDevices() {
+    const grid   = document.getElementById('devicesGrid');
+    const filter = (document.getElementById('searchInput').value || '').toLowerCase();
+
+    grid.innerHTML = '';
+
+    if (!allDevices.length) {
+        const ph = document.createElement('div');
+        ph.id = 'placeholder';
+        ph.textContent = t('keineGeraete');
+        grid.appendChild(ph);
+        return;
+    }
+
+    let shown = 0;
+    for (const device of allDevices) {
+        const shortId    = device._id.split('.').pop();
+        const deviceName = device.common?.name || shortId;
+        if (filter && !deviceName.toLowerCase().includes(filter) && !shortId.toLowerCase().includes(filter)) {
+            continue;
+        }
+        grid.appendChild(buildDeviceCard(device._id, shortId, deviceName));
+        shown++;
+    }
+
+    if (!shown) {
+        const ph = document.createElement('div');
+        ph.id = 'placeholder';
+        ph.textContent = t('keineGeraete');
+        grid.appendChild(ph);
+    }
+}
+
+function filterDevices() { renderDevices(); }
+
+function buildDeviceCard(deviceObjId, shortId, deviceName) {
+    const prefix = deviceObjId + '.';
+
+    // ---- Collect and categorise states ----
+    const powerStates  = {};   // relPath → {id, val, key}
+    const sensorStates = {};
+    const energyStates = {};
+    const wifiStates   = {};
+    const infoStates   = {};
+    let   isOnline     = null;
+
+    for (const [id, st] of Object.entries(allStates)) {
+        if (!id.startsWith(prefix)) continue;
+        const relParts = id.replace(prefix, '').split('.');
+        const key      = relParts[relParts.length - 1];
+        const entry    = { id, val: st?.val, key };
+        const cat      = categorizeState(id);
+
+        if (cat === 'power')      powerStates[relParts.join('.')]  = entry;
+        else if (cat === 'sensor') sensorStates[relParts.join('.')] = entry;
+        else if (cat === 'energy') energyStates[relParts.join('.')] = entry;
+        else if (cat === 'wifi')   wifiStates[relParts.join('.')]   = entry;
+        else if (cat === 'info')   infoStates[relParts.join('.')]   = entry;
+        else if (cat === 'connection') {
+            if (isOnline === null) {
+                const v = st?.val;
+                if (typeof v === 'boolean') isOnline = v;
+                else if (typeof v === 'string') isOnline = v.toLowerCase() === 'online';
+            }
+        }
+    }
+
+    // ---- Build DOM ----
+    const card = document.createElement('div');
+    card.className = 'device-card';
+    card.id = 'card-' + safeCssId(shortId);
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'card-header';
+    hdr.innerHTML = '<span class="device-icon">🔌</span>';
+    const nameSp = document.createElement('span');
+    nameSp.className = 'device-name';
+    nameSp.textContent = deviceName;
+    hdr.appendChild(nameSp);
+    if (isOnline !== null) {
+        const badge = document.createElement('span');
+        badge.className = 'online-badge ' + (isOnline ? 'online' : 'offline');
+        badge.textContent = isOnline ? '● ' + t('online') : '○ ' + t('offline');
+        hdr.appendChild(badge);
+    }
+    card.appendChild(hdr);
+
+    // Power section
+    if (Object.keys(powerStates).length) {
+        const sec = document.createElement('div');
+        sec.className = 'card-section';
+        const lbl = document.createElement('div');
+        lbl.className = 'section-label';
+        lbl.textContent = '🔌 ' + t('leistung');
+        sec.appendChild(lbl);
+
+        for (const [, info] of Object.entries(powerStates)) {
+            const row   = document.createElement('div');
+            row.className = 'power-row';
+
+            const labelEl = document.createElement('span');
+            labelEl.className = 'power-label';
+            labelEl.textContent = info.key.toUpperCase();
+            row.appendChild(labelEl);
+
+            const isOn  = info.val === true  || String(info.val).toUpperCase() === 'ON';
+            const isOff = info.val === false || String(info.val).toUpperCase() === 'OFF';
+
+            const tgl = document.createElement('div');
+            tgl.className = 'power-toggle';
+
+            const btnOn  = document.createElement('button');
+            btnOn.className  = 'btn-power on'  + (isOn  ? ' active-on'  : '');
+            btnOn.textContent = t('an');
+            btnOn.onclick = () => sendPower(info.id, true);
+
+            const btnOff = document.createElement('button');
+            btnOff.className  = 'btn-power off' + (isOff ? ' active-off' : '');
+            btnOff.textContent = t('aus');
+            btnOff.onclick = () => sendPower(info.id, false);
+
+            tgl.appendChild(btnOn);
+            tgl.appendChild(btnOff);
+            row.appendChild(tgl);
+            sec.appendChild(row);
+        }
+        card.appendChild(sec);
+    }
+
+    // Sensor section
+    if (Object.keys(sensorStates).length) {
+        card.appendChild(buildValueSection('🌡️ ' + t('sensoren'), sensorStates));
+    }
+
+    // Energy section
+    if (Object.keys(energyStates).length) {
+        card.appendChild(buildValueSection('⚡ ' + t('energie'), energyStates));
+    }
+
+    // WiFi/connectivity section
+    if (Object.keys(wifiStates).length) {
+        card.appendChild(buildValueSection('📶 ' + t('verbindung'), wifiStates));
+    }
+
+    // Info section
+    if (Object.keys(infoStates).length) {
+        card.appendChild(buildValueSection('ℹ️ ' + t('info'), infoStates));
+    }
+
+    // Empty-card fallback
+    if (card.children.length === 1) {
+        const sec = document.createElement('div');
+        sec.className = 'card-section';
+        sec.style.color    = 'var(--text-secondary)';
+        sec.style.fontSize = '12px';
+        sec.textContent = '—';
+        card.appendChild(sec);
+    }
+
+    return card;
+}
+
+function buildValueSection(title, states) {
+    const sec = document.createElement('div');
+    sec.className = 'card-section';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.textContent = title;
+    sec.appendChild(lbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'sensor-grid';
+
+    for (const [, info] of Object.entries(states)) {
+        const item = document.createElement('div');
+        item.className = 'sensor-item';
+
+        const sl = document.createElement('div');
+        sl.className = 's-label';
+        sl.textContent = sensorIcon(info.key) + ' ' + info.key;
+
+        const sv = document.createElement('div');
+        sv.className = 's-value';
+        sv.textContent = fmtVal(info.val);
+
+        const su = document.createElement('div');
+        su.className = 's-unit';
+        su.textContent = sensorUnit(info.key);
+
+        item.appendChild(sl);
+        item.appendChild(sv);
+        item.appendChild(su);
+        grid.appendChild(item);
+    }
+
+    sec.appendChild(grid);
+    return sec;
+}
+
+// ── Power control ──────────────────────────────────────────────────
+
+async function sendPower(stateId, value) {
+    // Prefer the cmnd channel for commands (standard Tasmota convention)
+    const relId    = stateId.replace(namespace + '.', '');  // e.g. mydevice.stat.POWER
+    const parts    = relId.split('.');
+    const shortDev = parts[0];
+    const key      = parts[parts.length - 1];               // e.g. POWER
+    const cmdId    = namespace + '.' + shortDev + '.cmnd.' + key;
+
+    const writeId = (allStates[cmdId] !== undefined) ? cmdId : stateId;
+
+    try {
+        await socketCall('setState', writeId, { val: value, ack: false });
+        showToast(t('befehlGesendet'));
+    } catch (e) {
+        showToast(t('fehler') + ' ' + (e.message || e), true);
+    }
+}
+
+// ── Live state updates ─────────────────────────────────────────────
+
+function handleStateChange(id, state) {
+    if (!state) return;
+
+    // Update in-memory cache
+    allStates[id] = state;
+
+    // Identify the device (first segment after namespace)
+    const shortId    = id.replace(namespace + '.', '').split('.')[0];
+    const deviceObjId = namespace + '.' + shortId;
+    const cardEl     = document.getElementById('card-' + safeCssId(shortId));
+    if (!cardEl) return;
+
+    const device     = allDevices.find(d => d._id === deviceObjId);
+    if (!device) return;
+
+    const deviceName = device.common?.name || shortId;
+    const newCard    = buildDeviceCard(deviceObjId, shortId, deviceName);
+    cardEl.replaceWith(newCard);
+
+    updateSummary();
+}
+
+// ── Summary bar ────────────────────────────────────────────────────
+
+function updateSummary() {
+    const bar = document.getElementById('summaryBar');
+    if (!allDevices.length) { bar.style.display = 'none'; return; }
+
+    bar.style.display = '';
+    document.getElementById('cntTotal').textContent = allDevices.length;
+
+    let cntOnline = 0, cntOffline = 0;
+    for (const device of allDevices) {
+        const pfx = device._id + '.';
+        let devOnline = null;
+        for (const [id, st] of Object.entries(allStates)) {
+            if (!id.startsWith(pfx)) continue;
+            const k = id.split('.').pop().toLowerCase();
+            if (k === 'lwt' || k === 'status') {
+                const v = st?.val;
+                if (typeof v === 'boolean') { devOnline = v; break; }
+                if (typeof v === 'string')  { devOnline = v.toLowerCase() === 'online'; break; }
+            }
+        }
+        if (devOnline === true)  cntOnline++;
+        else if (devOnline === false) cntOffline++;
+    }
+    document.getElementById('cntOnline').textContent  = cntOnline;
+    document.getElementById('cntOffline').textContent = cntOffline;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+function safeCssId(id) {
+    // Replace characters that are invalid in CSS identifiers
+    return id.replace(/[^A-Za-z0-9_-]/g, '_');
+}
+
+let toastTimer = null;
+function showToast(msg, isError) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = isError ? 'show error' : 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ── Boot ───────────────────────────────────────────────────────────
+initSocket();
+</script>
+</body>
+</html>

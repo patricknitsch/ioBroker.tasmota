@@ -1,8 +1,21 @@
 {
 	"common": {
 		"name": "tasmota",
-		"version": "0.0.1",
+		"version": "0.0.2",
 		"news": {
+			"0.0.2": {
+				"en": "Update README\nAdd admin/tab.html device overview panel",
+				"de": "README aktualisiert\nAdmin/tab.html Geräteübersicht hinzugefügt",
+				"ru": "Обновление README\nДобавлена панель обзора устройств admin/tab.html",
+				"pt": "Actualizar README\nAdicionar painel de visão geral de dispositivos admin/tab.html",
+				"nl": "README bijwerken\nAdmin/tab.html apparaatoverzicht toegevoegd",
+				"fr": "Mettre à jour README\nAjouter le panneau de vue d'ensemble des appareils admin/tab.html",
+				"it": "Aggiornamento README\nAggiunto pannello di panoramica dispositivi admin/tab.html",
+				"es": "Actualizar README\nAñadir panel de descripción general de dispositivos admin/tab.html",
+				"pl": "Aktualizacja README\nDodano panel przeglądu urządzeń admin/tab.html",
+				"uk": "Оновлення README\nДодано панель огляду пристроїв admin/tab.html",
+				"zh-cn": "更新README\n添加admin/tab.html设备概览面板"
+			},
 			"0.0.1": {
 				"en": "initial release",
 				"de": "Erstveröffentlichung",
@@ -62,7 +75,15 @@
 		"connectionType": "local",
 		"dataSource": "push",
 		"adminUI": {
-			"config": "json"
+			"config": "json",
+			"tab": "html"
+		},
+		"adminTab": {
+			"singleton": false,
+			"name": {
+				"en": "Device Overview",
+				"de": "Geräteübersicht"
+			}
 		},
 		"dependencies": [
 			{
