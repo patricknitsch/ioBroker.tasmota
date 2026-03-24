@@ -3,11 +3,11 @@ updates:
   - package-ecosystem: npm
     directory: "/"
     schedule:
-      interval: monthly
-      day: 7
-      time: "00:05"
+      interval: weekly
+      day: monday
+      time: "04:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 15
     assignees:
       - patricknitsch
     versioning-strategy: increase
@@ -15,10 +15,10 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: monthly
-      day: 7
-      time: "00:05"
+      interval: weekly
+      day: monday
+      time: "04:00"
       timezone: Europe/Berlin
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 15
     assignees:
       - patricknitsch

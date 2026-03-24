@@ -10,6 +10,7 @@
   "homepage": "https://github.com/patricknitsch/ioBroker.tasmota",
   "license": "MIT",
   "keywords": [
+    "ioBroker",
     "tasmota",
     "adapter",
     "mqtt"
