@@ -26,6 +26,7 @@
 	"cleanSession": "Czysta sesja",
 	"topicSettings": "Ustawienia tematu",
 	"topicPrefix": "Prefiks tematu",
+	"topicPrefixHelp": "Jeden lub więcej prefiksów tematów MQTT, oddzielonych przecinkami (np. tasmota,home)",
 	"topicStructure": "Struktura tematu",
 	"topicDeviceFirst": "Urządzenie pierwsze (urządzenie/prefiks/temat)",
 	"topicPrefixFirst": "Prefiks pierwszy (prefiks/urządzenie/temat)"

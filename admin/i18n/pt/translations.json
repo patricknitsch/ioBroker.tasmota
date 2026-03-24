@@ -26,6 +26,7 @@
 	"cleanSession": "Sessão limpa",
 	"topicSettings": "Configurações de tópico",
 	"topicPrefix": "Prefixo do tópico",
+	"topicPrefixHelp": "Um ou mais prefixos de tópicos MQTT, separados por vírgulas (ex. tasmota,home)",
 	"topicStructure": "Estrutura do tópico",
 	"topicDeviceFirst": "Dispositivo primeiro (dispositivo/prefixo/tópico)",
 	"topicPrefixFirst": "Prefixo primeiro (prefixo/dispositivo/tópico)"

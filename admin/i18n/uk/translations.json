@@ -26,6 +26,7 @@
 	"cleanSession": "Чиста сесія",
 	"topicSettings": "Налаштування теми",
 	"topicPrefix": "Префікс теми",
+	"topicPrefixHelp": "Один або кілька префіксів тем MQTT, розділених комами (напр. tasmota,home)",
 	"topicStructure": "Структура теми",
 	"topicDeviceFirst": "Пристрій першим (пристрій/префікс/тема)",
 	"topicPrefixFirst": "Префікс першим (префікс/пристрій/тема)"

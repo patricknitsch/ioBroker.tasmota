@@ -26,6 +26,7 @@
 	"cleanSession": "Sesión limpia",
 	"topicSettings": "Configuración de temas",
 	"topicPrefix": "Prefijo de tema",
+	"topicPrefixHelp": "Uno o más prefijos de temas MQTT, separados por comas (p. ej. tasmota,home)",
 	"topicStructure": "Estructura de temas",
 	"topicDeviceFirst": "Dispositivo primero (dispositivo/prefijo/tema)",
 	"topicPrefixFirst": "Prefijo primero (prefijo/dispositivo/tema)"
