@@ -386,7 +386,10 @@ class Tasmota extends utils.Adapter {
 					this.guessStateRole(String(strVal)),
 					this.guessStateType(String(strVal)),
 				);
-				await this.setStateAsAck(stateId, strVal);
+				// Convert string values (e.g. "ON"→true, "OFF"→false, "42"→42) so the
+				// stored value always matches the declared state type.
+				const convertedVal = typeof strVal === 'string' ? this.parseScalar(strVal) : strVal;
+				await this.setStateAsAck(stateId, convertedVal);
 			}
 		}
 	}
@@ -635,6 +638,7 @@ if (require.main !== module) {
 	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
 	 */
 	module.exports = options => new Tasmota(options);
+	module.exports.Tasmota = Tasmota;
 } else {
 	// otherwise start the instance directly
 	new Tasmota();
