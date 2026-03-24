@@ -1,6 +1,6 @@
 {
   "name": "iobroker.tasmota",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Read and Write Topics between MQTT and Tasmota",
   "author": {
     "name": "patricknitsch",

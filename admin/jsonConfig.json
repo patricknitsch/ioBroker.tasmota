@@ -285,6 +285,7 @@
 		"brokerTopicPrefix": {
 			"type": "text",
 			"label": "topicPrefix",
+			"help": "topicPrefixHelp",
 			"default": "tasmota",
 			"xs": 12,
 			"sm": 6,

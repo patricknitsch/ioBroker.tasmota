@@ -26,6 +26,7 @@
 	"cleanSession": "Sitzung bereinigen",
 	"topicSettings": "Topic-Einstellungen",
 	"topicPrefix": "Topic-Präfix",
+	"topicPrefixHelp": "Ein oder mehrere MQTT-Topic-Präfixe, durch Komma getrennt (z.B. tasmota,home)",
 	"topicStructure": "Topic-Struktur",
 	"topicDeviceFirst": "Gerät zuerst (Gerät/Präfix/Thema)",
 	"topicPrefixFirst": "Präfix zuerst (Präfix/Gerät/Thema)"

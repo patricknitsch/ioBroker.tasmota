@@ -1,8 +1,21 @@
 {
 	"common": {
 		"name": "tasmota",
-		"version": "0.0.2",
+		"version": "0.0.3",
 		"news": {
+			"0.0.3": {
+				"en": "Add support for multiple comma-separated topic prefixes\nAdd separate English and German documentation in docs/",
+				"de": "Unterstützung für mehrere durch Komma getrennte Topic-Präfixe hinzugefügt\nSeparate englische und deutsche Dokumentation in docs/ hinzugefügt",
+				"ru": "Добавлена поддержка нескольких префиксов MQTT-топиков через запятую\nДобавлена отдельная документация на английском и немецком языках в docs/",
+				"pt": "Suporte a múltiplos prefixos de tópicos separados por vírgulas\nDocumentação separada em inglês e alemão adicionada em docs/",
+				"nl": "Ondersteuning voor meerdere door komma's gescheiden onderwerpvoorvoegsels toegevoegd\nAparte Engelse en Duitse documentatie toegevoegd in docs/",
+				"fr": "Ajout de la prise en charge de plusieurs préfixes de sujets séparés par des virgules\nDocumentation séparée en anglais et en allemand ajoutée dans docs/",
+				"it": "Aggiunto supporto per più prefissi di argomenti separati da virgola\nAggiunta documentazione separata in inglese e tedesco in docs/",
+				"es": "Añadido soporte para múltiples prefijos de temas separados por comas\nDocumentación separada en inglés y alemán añadida en docs/",
+				"pl": "Dodano obsługę wielu prefiksów tematów oddzielonych przecinkami\nDodano oddzielną dokumentację angielską i niemiecką w docs/",
+				"uk": "Додано підтримку кількох префіксів тем MQTT, розділених комами\nДодано окрему англійську та німецьку документацію в docs/",
+				"zh-cn": "添加了对多个逗号分隔主题前缀的支持\n在docs/中添加了单独的英文和德文文档"
+			},
 			"0.0.2": {
 				"en": "Update README\nAdd admin/tab.html device overview panel",
 				"de": "README aktualisiert\nAdmin/tab.html Geräteübersicht hinzugefügt",

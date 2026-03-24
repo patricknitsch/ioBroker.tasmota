@@ -26,6 +26,7 @@
 	"cleanSession": "Clean Session",
 	"topicSettings": "Topic Settings",
 	"topicPrefix": "Topic Prefix",
+	"topicPrefixHelp": "One or more MQTT topic prefixes, separated by commas (e.g. tasmota,home)",
 	"topicStructure": "Topic Structure",
 	"topicDeviceFirst": "Device First (device/prefix/topic)",
 	"topicPrefixFirst": "Prefix First (prefix/device/topic)"

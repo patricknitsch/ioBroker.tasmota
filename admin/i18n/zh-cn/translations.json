@@ -26,6 +26,7 @@
 	"cleanSession": "清洁会话",
 	"topicSettings": "主题设置",
 	"topicPrefix": "主题前缀",
+	"topicPrefixHelp": "一个或多个MQTT主题前缀，用逗号分隔（例如 tasmota,home）",
 	"topicStructure": "主题结构",
 	"topicDeviceFirst": "设备优先 (设备/前缀/主题)",
 	"topicPrefixFirst": "前缀优先 (前缀/设备/主题)"

@@ -141,6 +141,19 @@ class Tasmota extends utils.Adapter {
 	}
 
 	/**
+	 * Parse the brokerTopicPrefix config value into a list of trimmed, non-empty prefix strings.
+	 * The value may contain multiple prefixes separated by commas.
+	 *
+	 * @returns {string[]} array of topic prefixes
+	 */
+	getTopicPrefixes() {
+		return (this.config.brokerTopicPrefix || '')
+			.split(',')
+			.map(p => p.trim())
+			.filter(p => p !== '');
+	}
+
+	/**
 	 * Start an MQTT client connecting to an external broker.
 	 */
 	async startMqttClient() {
@@ -195,18 +208,20 @@ class Tasmota extends utils.Adapter {
 			this.log.info('Connected to MQTT broker');
 			this.setState('info.connection', true, true);
 
-			// Subscribe to the configured topic prefix or all topics
-			const topicPrefix = this.config.brokerTopicPrefix;
-			const subscribeTopic = topicPrefix ? `${topicPrefix}/#` : '#';
+			// Subscribe to each configured topic prefix, or all topics if none are configured
+			const topicPrefixes = this.getTopicPrefixes();
+			const subscribeTopics = topicPrefixes.length > 0 ? topicPrefixes.map(p => `${p}/#`) : ['#'];
 
 			if (this.mqttClient) {
-				this.mqttClient.subscribe(subscribeTopic, { qos: 0 }, err => {
-					if (err) {
-						this.log.error(`Failed to subscribe: ${err.message}`);
-					} else {
-						this.log.info(`Subscribed to MQTT topics: ${subscribeTopic}`);
-					}
-				});
+				for (const subscribeTopic of subscribeTopics) {
+					this.mqttClient.subscribe(subscribeTopic, { qos: 0 }, err => {
+						if (err) {
+							this.log.error(`Failed to subscribe: ${err.message}`);
+						} else {
+							this.log.info(`Subscribed to MQTT topics: ${subscribeTopic}`);
+						}
+					});
+				}
 			}
 		});
 
@@ -239,10 +254,16 @@ class Tasmota extends utils.Adapter {
 	 * @param {string} payload - message payload
 	 */
 	async processMqttMessage(topic, payload) {
-		// Strip the broker topic prefix from the front if configured
-		const topicPrefix = this.config.brokerTopicPrefix;
-		const effectiveTopic =
-			topicPrefix && topic.startsWith(`${topicPrefix}/`) ? topic.slice(topicPrefix.length + 1) : topic;
+		// Strip the first matching broker topic prefix from the front if configured.
+		// Multiple prefixes can be configured separated by commas.
+		const topicPrefixes = this.getTopicPrefixes();
+		let effectiveTopic = topic;
+		for (const topicPrefix of topicPrefixes) {
+			if (topic.startsWith(`${topicPrefix}/`)) {
+				effectiveTopic = topic.slice(topicPrefix.length + 1);
+				break;
+			}
+		}
 
 		// Parse topic into parts
 		const parts = effectiveTopic.split('/').filter(p => p !== '');
@@ -562,10 +583,10 @@ class Tasmota extends utils.Adapter {
 			topic = `${prefix}/${device}/${command}`;
 		}
 
-		// Prepend broker topic prefix if configured
-		const topicPrefix = this.config.brokerTopicPrefix;
-		if (topicPrefix) {
-			topic = `${topicPrefix}/${topic}`;
+		// Prepend first broker topic prefix if configured
+		const topicPrefixes = this.getTopicPrefixes();
+		if (topicPrefixes.length > 0) {
+			topic = `${topicPrefixes[0]}/${topic}`;
 		}
 
 		// Convert value for Tasmota commands: boolean true/false → ON/OFF
