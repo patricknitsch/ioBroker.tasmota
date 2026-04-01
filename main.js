@@ -2,6 +2,7 @@
 
 const utils = require('@iobroker/adapter-core');
 const mqtt = require('mqtt');
+const { setupCommandManagement } = require('./lib/commands');
 
 class Tasmota extends utils.Adapter {
 	/**
@@ -55,6 +56,9 @@ class Tasmota extends utils.Adapter {
 
 		// Subscribe to cmnd states so user-initiated commands are published over MQTT
 		await this.subscribeStatesAsync('*.cmnd.*');
+
+		// Set up automatic command-state creation based on device-type detection
+		await setupCommandManagement(this);
 	}
 
 	/**

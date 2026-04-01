@@ -225,6 +225,106 @@
         #toast.show  { transform: translateX(-50%) translateY(0); }
         #toast.error { background: var(--danger); }
 
+        /* ── DEVICE CONTROLS ── */
+        .ctrl-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px 16px;
+        }
+        .ctrl-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 160px;
+        }
+        .ctrl-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .ctrl-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* Sliders */
+        .ctrl-slider {
+            flex: 1;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .ctrl-slider-val {
+            min-width: 38px;
+            text-align: right;
+            font-size: 13px;
+            color: var(--text);
+        }
+        /* Shutter buttons */
+        .shutter-btns {
+            display: flex;
+            gap: 4px;
+        }
+        .btn-shutter {
+            padding: 5px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn-shutter.open  { border-color: var(--success); color: var(--success); }
+        .btn-shutter.close { border-color: var(--danger);  color: var(--danger); }
+        .btn-shutter.stop  { border-color: var(--warning); color: var(--warning); }
+        .btn-shutter:hover { opacity: .75; }
+        /* Color input */
+        .ctrl-color {
+            width: 40px;
+            height: 30px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 2px;
+            background: none;
+        }
+        /* Fan speed */
+        .fan-btns {
+            display: flex;
+            gap: 4px;
+        }
+        .btn-fan {
+            padding: 4px 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn-fan.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .btn-fan:hover { opacity: .75; }
+        /* Number input */
+        .ctrl-num {
+            width: 80px;
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--card-bg);
+            color: var(--text);
+            font-size: 13px;
+        }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 480px) {
             #main { padding: 10px; }
@@ -232,6 +332,7 @@
             .states-table td { display: block; padding: 4px 16px; }
             .td-key { font-weight: 600; padding-top: 10px; }
             .td-act { padding-bottom: 10px; }
+            .ctrl-group { min-width: 120px; }
         }
     </style>
 </head>
@@ -265,6 +366,12 @@
 
     <!-- DEVICE DETAIL PANEL -->
     <div id="deviceDetail" style="display:none">
+
+        <!-- Device Controls (auto-generated from device capabilities) -->
+        <div class="channel-card" id="deviceControlsCard" style="display:none">
+            <div class="channel-header">🎛 <span data-i18n="steuerungTitel">Device Controls</span></div>
+            <div class="ctrl-panel" id="deviceControlsPanel"></div>
+        </div>
 
         <!-- cmnd channel section -->
         <div class="channel-card">
@@ -329,6 +436,7 @@ const TRANSLATIONS = {
         offline:            'Offline',
         cmndTitel:          'Befehle (cmnd)',
         statTitel:          'Status (stat)',
+        steuerungTitel:     'Gerätesteuerung',
         schluessel:         'Schlüssel',
         wert:               'Wert',
         aktionen:           'Aktionen',
@@ -337,6 +445,21 @@ const TRANSLATIONS = {
         aus:                'AUS',
         fehler:             'Fehler:',
         befehlGesendet:     'Befehl gesendet',
+        oeffnen:            'Öffnen',
+        schliessen:         'Schließen',
+        stopp:              'Stopp',
+        position:           'Position',
+        neigung:            'Neigung',
+        helligkeit:         'Helligkeit',
+        farbtemperatur:     'Farbtemperatur',
+        farbe:              'Farbe',
+        weiss:              'Weiß',
+        ventilator:         'Lüfter',
+        geschwindigkeit:    'Geschwindigkeit',
+        jalousie:           'Jalousie',
+        licht:              'Licht',
+        leistung:           'Schalten',
+        einblenden:         'Einblenden',
     },
     en: {
         verbinde:           'Connecting…',
@@ -354,6 +477,7 @@ const TRANSLATIONS = {
         offline:            'Offline',
         cmndTitel:          'Commands (cmnd)',
         statTitel:          'Status (stat)',
+        steuerungTitel:     'Device Controls',
         schluessel:         'Key',
         wert:               'Value',
         aktionen:           'Actions',
@@ -362,6 +486,21 @@ const TRANSLATIONS = {
         aus:                'OFF',
         fehler:             'Error:',
         befehlGesendet:     'Command sent',
+        oeffnen:            'Open',
+        schliessen:         'Close',
+        stopp:              'Stop',
+        position:           'Position',
+        neigung:            'Tilt',
+        helligkeit:         'Brightness',
+        farbtemperatur:     'Color temperature',
+        farbe:              'Color',
+        weiss:              'White',
+        ventilator:         'Fan',
+        geschwindigkeit:    'Speed',
+        jalousie:           'Shutter',
+        licht:              'Light',
+        leistung:           'Power',
+        einblenden:         'Fade',
     },
 };
 
@@ -645,6 +784,321 @@ function onDeviceSelect() {
     renderDevice();
 }
 
+// ── Command definitions (mirrors lib/commands.js for the UI) ──────────────────
+
+const CMD_DEFS = {
+    Power:           { type:'boolean', role:'switch.power',            name:'Power'                  },
+    Power1:          { type:'boolean', role:'switch.power',            name:'Power 1'                },
+    Power2:          { type:'boolean', role:'switch.power',            name:'Power 2'                },
+    Power3:          { type:'boolean', role:'switch.power',            name:'Power 3'                },
+    Power4:          { type:'boolean', role:'switch.power',            name:'Power 4'                },
+    Dimmer:          { type:'number',  role:'level.dimmer',            name:'Dimmer',       min:0,   max:100, unit:'%'     },
+    Dimmer1:         { type:'number',  role:'level.dimmer',            name:'Dimmer 1',     min:0,   max:100, unit:'%'     },
+    Dimmer2:         { type:'number',  role:'level.dimmer',            name:'Dimmer 2',     min:0,   max:100, unit:'%'     },
+    Color:           { type:'string',  role:'level.color.rgb',         name:'Color'                  },
+    CT:              { type:'number',  role:'level.color.temperature',  name:'CT (mired)',   min:153, max:500, unit:'mired' },
+    White:           { type:'number',  role:'level.color.white',       name:'White',        min:0,   max:100, unit:'%'     },
+    Fade:            { type:'boolean', role:'switch',                  name:'Fade'                   },
+    Speed:           { type:'number',  role:'level',                   name:'Speed',        min:1,   max:40               },
+    Scheme:          { type:'number',  role:'level',                   name:'Scheme',       min:0,   max:12               },
+    ShutterOpen1:    { type:'boolean', role:'button.open.blind',       name:'Open 1',    write:true, read:false },
+    ShutterClose1:   { type:'boolean', role:'button.close.blind',      name:'Close 1',   write:true, read:false },
+    ShutterStop1:    { type:'boolean', role:'button.stop.blind',       name:'Stop 1',    write:true, read:false },
+    ShutterPosition1:{ type:'number',  role:'value.blind',             name:'Position 1',   min:0,   max:100, unit:'%'     },
+    ShutterTilt1:    { type:'number',  role:'value.tilt',              name:'Tilt 1',       min:-90, max:90,  unit:'°'     },
+    ShutterOpen2:    { type:'boolean', role:'button.open.blind',       name:'Open 2',    write:true, read:false },
+    ShutterClose2:   { type:'boolean', role:'button.close.blind',      name:'Close 2',   write:true, read:false },
+    ShutterStop2:    { type:'boolean', role:'button.stop.blind',       name:'Stop 2',    write:true, read:false },
+    ShutterPosition2:{ type:'number',  role:'value.blind',             name:'Position 2',   min:0,   max:100, unit:'%'     },
+    ShutterTilt2:    { type:'number',  role:'value.tilt',              name:'Tilt 2',       min:-90, max:90,  unit:'°'     },
+    ShutterOpen3:    { type:'boolean', role:'button.open.blind',       name:'Open 3',    write:true, read:false },
+    ShutterClose3:   { type:'boolean', role:'button.close.blind',      name:'Close 3',   write:true, read:false },
+    ShutterStop3:    { type:'boolean', role:'button.stop.blind',       name:'Stop 3',    write:true, read:false },
+    ShutterPosition3:{ type:'number',  role:'value.blind',             name:'Position 3',   min:0,   max:100, unit:'%'     },
+    ShutterTilt3:    { type:'number',  role:'value.tilt',              name:'Tilt 3',       min:-90, max:90,  unit:'°'     },
+    ShutterOpen4:    { type:'boolean', role:'button.open.blind',       name:'Open 4',    write:true, read:false },
+    ShutterClose4:   { type:'boolean', role:'button.close.blind',      name:'Close 4',   write:true, read:false },
+    ShutterStop4:    { type:'boolean', role:'button.stop.blind',       name:'Stop 4',    write:true, read:false },
+    ShutterPosition4:{ type:'number',  role:'value.blind',             name:'Position 4',   min:0,   max:100, unit:'%'     },
+    ShutterTilt4:    { type:'number',  role:'value.tilt',              name:'Tilt 4',       min:-90, max:90,  unit:'°'     },
+    FanSpeed:        { type:'number',  role:'value.speed.fan',         name:'Fan Speed',    min:0,   max:3                },
+};
+
+/**
+ * Detect device capabilities from a map of relative state IDs.
+ * Returns an object with { power, powerIndexes, dimmer, color, ct, white, shutters, fan }.
+ *
+ * @param {string[]} relIds
+ */
+function detectCaps(relIds) {
+    const caps = { power:false, powerIndexes:[], dimmer:false, color:false, ct:false, white:false, shutters:0, fan:false };
+    for (const id of relIds) {
+        for (const seg of id.toLowerCase().split('.')) {
+            if (seg === 'power') caps.power = true;
+            const pm = seg.match(/^power(\d+)$/);
+            if (pm) { caps.power = true; const n = +pm[1]; if (!caps.powerIndexes.includes(n)) caps.powerIndexes.push(n); }
+            if (seg === 'dimmer' || seg === 'dimmer1' || seg === 'dimmer2') caps.dimmer = true;
+            if (seg === 'color' || /^color\d+$/.test(seg) || seg === 'hue' || seg === 'sat' || seg === 'hsbcolor') caps.color = true;
+            if (seg === 'ct' || seg === 'colortemp') caps.ct = true;
+            if (seg === 'white') caps.white = true;
+            const sm = seg.match(/^shutter(\d+)$/);
+            if (sm) { const n = +sm[1]; if (n > caps.shutters) caps.shutters = n; }
+            if (seg === 'fanspeed') caps.fan = true;
+        }
+    }
+    caps.powerIndexes.sort((a,b)=>a-b);
+    return caps;
+}
+
+/**
+ * Build the device-controls panel for detected capabilities.
+ * Returns the panel element, or null if no special controls apply.
+ *
+ * @param {Object} caps - from detectCaps()
+ * @param {Object} cmndStates - map key → {id, val}
+ * @returns {HTMLElement|null}
+ */
+function buildControlsPanel(caps, cmndStates) {
+    const panel = document.getElementById('deviceControlsPanel');
+    const card  = document.getElementById('deviceControlsCard');
+    panel.innerHTML = '';
+
+    const groups = [];
+
+    // ── Power ────────────────────────────────────────────────────────────────
+    if (caps.power) {
+        const powerKeys = caps.powerIndexes.length > 0
+            ? caps.powerIndexes.map(i => `Power${i}`)
+            : ['Power'];
+
+        for (const key of powerKeys) {
+            const info = cmndStates[key];
+            const isOn = info ? (info.val === true || String(info.val).toUpperCase() === 'ON') : false;
+            const g = document.createElement('div');
+            g.className = 'ctrl-group';
+            const lbl = document.createElement('div');
+            lbl.className = 'ctrl-label';
+            lbl.textContent = t('leistung') + (caps.powerIndexes.length > 1 ? ` ${key.replace('Power','')}` : '');
+            const row = document.createElement('div');
+            row.className = 'ctrl-row';
+            const btnOn  = document.createElement('button');
+            btnOn.className = 'btn-power on' + (isOn ? ' active-on' : '');
+            btnOn.textContent = t('an');
+            btnOn.onclick = () => sendCmd(info ? info.id : `${namespace}.${selectedDeviceShortId}.cmnd.${key}`, true);
+            const btnOff = document.createElement('button');
+            btnOff.className = 'btn-power off' + (!isOn ? ' active-off' : '');
+            btnOff.textContent = t('aus');
+            btnOff.onclick = () => sendCmd(info ? info.id : `${namespace}.${selectedDeviceShortId}.cmnd.${key}`, false);
+            row.appendChild(btnOn);
+            row.appendChild(btnOff);
+            g.appendChild(lbl);
+            g.appendChild(row);
+            groups.push(g);
+        }
+    }
+
+    // ── Shutter panels ───────────────────────────────────────────────────────
+    for (let i = 1; i <= caps.shutters; i++) {
+        const g = document.createElement('div');
+        g.className = 'ctrl-group';
+
+        const lbl = document.createElement('div');
+        lbl.className = 'ctrl-label';
+        lbl.textContent = t('jalousie') + (caps.shutters > 1 ? ` ${i}` : '');
+        g.appendChild(lbl);
+
+        // Open / Close / Stop buttons
+        const btns = document.createElement('div');
+        btns.className = 'shutter-btns';
+
+        const btnOpen = document.createElement('button');
+        btnOpen.className = 'btn-shutter open';
+        btnOpen.textContent = t('oeffnen');
+        btnOpen.onclick = () => sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.ShutterOpen${i}`, 1);
+
+        const btnClose = document.createElement('button');
+        btnClose.className = 'btn-shutter close';
+        btnClose.textContent = t('schliessen');
+        btnClose.onclick = () => sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.ShutterClose${i}`, 1);
+
+        const btnStop = document.createElement('button');
+        btnStop.className = 'btn-shutter stop';
+        btnStop.textContent = t('stopp');
+        btnStop.onclick = () => sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.ShutterStop${i}`, 1);
+
+        btns.appendChild(btnOpen);
+        btns.appendChild(btnClose);
+        btns.appendChild(btnStop);
+        g.appendChild(btns);
+
+        // Position slider
+        const posInfo = cmndStates[`ShutterPosition${i}`];
+        const posVal  = posInfo ? (isFinite(+posInfo.val) ? +posInfo.val : 0) : 0;
+        const posGrp  = buildSliderRow(t('position'), 0, 100, '%', posVal, val => {
+            sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.ShutterPosition${i}`, val);
+        });
+        g.appendChild(posGrp);
+
+        // Tilt slider
+        const tiltInfo = cmndStates[`ShutterTilt${i}`];
+        const tiltVal  = tiltInfo ? (isFinite(+tiltInfo.val) ? +tiltInfo.val : 0) : 0;
+        const tiltGrp  = buildSliderRow(t('neigung'), -90, 90, '°', tiltVal, val => {
+            sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.ShutterTilt${i}`, val);
+        });
+        g.appendChild(tiltGrp);
+
+        groups.push(g);
+    }
+
+    // ── Dimmer ───────────────────────────────────────────────────────────────
+    if (caps.dimmer) {
+        const dimInfo = cmndStates['Dimmer'];
+        const dimVal  = dimInfo ? (isFinite(+dimInfo.val) ? +dimInfo.val : 0) : 0;
+        const g = document.createElement('div');
+        g.className = 'ctrl-group';
+        const lbl = document.createElement('div');
+        lbl.className = 'ctrl-label';
+        lbl.textContent = t('helligkeit');
+        g.appendChild(lbl);
+        g.appendChild(buildSliderRow('', 0, 100, '%', dimVal, val => {
+            sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.Dimmer`, val);
+        }));
+        groups.push(g);
+    }
+
+    // ── Color ────────────────────────────────────────────────────────────────
+    if (caps.color) {
+        const colInfo = cmndStates['Color'];
+        const rawCol  = colInfo ? String(colInfo.val || '') : '';
+        // Convert Tasmota 6-char hex to CSS #RRGGBB
+        const cssCol  = rawCol.match(/^[0-9A-Fa-f]{6}$/) ? '#' + rawCol : (rawCol.startsWith('#') ? rawCol : '#ffffff');
+
+        const g = document.createElement('div');
+        g.className = 'ctrl-group';
+        const lbl = document.createElement('div');
+        lbl.className = 'ctrl-label';
+        lbl.textContent = t('farbe');
+        const row = document.createElement('div');
+        row.className = 'ctrl-row';
+        const inp = document.createElement('input');
+        inp.type  = 'color';
+        inp.className = 'ctrl-color';
+        inp.value = cssCol;
+        inp.oninput = () => {
+            // Tasmota expects 6-char uppercase hex without #
+            const hex = inp.value.replace('#','').toUpperCase();
+            sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.Color`, hex);
+        };
+        row.appendChild(inp);
+        g.appendChild(lbl);
+        g.appendChild(row);
+        groups.push(g);
+    }
+
+    // ── Color temperature ────────────────────────────────────────────────────
+    if (caps.ct) {
+        const ctInfo = cmndStates['CT'];
+        const ctVal  = ctInfo ? (isFinite(+ctInfo.val) ? +ctInfo.val : 153) : 153;
+        const g = document.createElement('div');
+        g.className = 'ctrl-group';
+        const lbl = document.createElement('div');
+        lbl.className = 'ctrl-label';
+        lbl.textContent = t('farbtemperatur');
+        g.appendChild(lbl);
+        g.appendChild(buildSliderRow('', 153, 500, 'mired', ctVal, val => {
+            sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.CT`, val);
+        }));
+        groups.push(g);
+    }
+
+    // ── White ────────────────────────────────────────────────────────────────
+    if (caps.white) {
+        const wInfo = cmndStates['White'];
+        const wVal  = wInfo ? (isFinite(+wInfo.val) ? +wInfo.val : 0) : 0;
+        const g = document.createElement('div');
+        g.className = 'ctrl-group';
+        const lbl = document.createElement('div');
+        lbl.className = 'ctrl-label';
+        lbl.textContent = t('weiss');
+        g.appendChild(lbl);
+        g.appendChild(buildSliderRow('', 0, 100, '%', wVal, val => {
+            sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.White`, val);
+        }));
+        groups.push(g);
+    }
+
+    // ── Fan ──────────────────────────────────────────────────────────────────
+    if (caps.fan) {
+        const fanInfo = cmndStates['FanSpeed'];
+        const fanVal  = fanInfo ? (+fanInfo.val || 0) : 0;
+        const g = document.createElement('div');
+        g.className = 'ctrl-group';
+        const lbl = document.createElement('div');
+        lbl.className = 'ctrl-label';
+        lbl.textContent = t('ventilator');
+        const row = document.createElement('div');
+        row.className = 'fan-btns';
+        for (let s = 0; s <= 3; s++) {
+            const btn = document.createElement('button');
+            btn.className = 'btn-fan' + (fanVal === s ? ' active' : '');
+            btn.textContent = s === 0 ? t('aus') : String(s);
+            btn.onclick = () => sendCmdRaw(`${namespace}.${selectedDeviceShortId}.cmnd.FanSpeed`, s);
+            row.appendChild(btn);
+        }
+        g.appendChild(lbl);
+        g.appendChild(row);
+        groups.push(g);
+    }
+
+    if (groups.length === 0) {
+        card.style.display = 'none';
+        return;
+    }
+
+    for (const g of groups) panel.appendChild(g);
+    card.style.display = '';
+}
+
+/**
+ * Build a slider row element.
+ *
+ * @param {string}   label
+ * @param {number}   min
+ * @param {number}   max
+ * @param {string}   unit
+ * @param {number}   value
+ * @param {function} onChange  - called with the new numeric value
+ * @returns {HTMLElement}
+ */
+function buildSliderRow(label, min, max, unit, value, onChange) {
+    const row = document.createElement('div');
+    row.className = 'ctrl-row';
+    if (label) {
+        const lbl = document.createElement('span');
+        lbl.className = 'ctrl-label';
+        lbl.style.minWidth = '50px';
+        lbl.textContent = label;
+        row.appendChild(lbl);
+    }
+    const slider = document.createElement('input');
+    slider.type  = 'range';
+    slider.className = 'ctrl-slider';
+    slider.min   = String(min);
+    slider.max   = String(max);
+    slider.value = String(Math.min(max, Math.max(min, value)));
+
+    const display = document.createElement('span');
+    display.className = 'ctrl-slider-val';
+    display.textContent = slider.value + unit;
+
+    slider.oninput  = () => { display.textContent = slider.value + unit; };
+    slider.onchange = () => { onChange(+slider.value); };
+
+    row.appendChild(slider);
+    row.appendChild(display);
+    return row;
+}
+
 // ── Device detail rendering ────────────────────────────────────────
 
 function renderDevice() {
@@ -679,6 +1133,13 @@ function renderDevice() {
 
     renderStateSection('cmndBody', 'cmndTable', 'cmndEmpty', cmndStates, true);
     renderStateSection('statBody', 'statTable', 'statEmpty', statStates, false);
+
+    // Build device-type-aware controls panel
+    const allRelIds = Object.keys(allStates)
+        .filter(id => id.startsWith(devicePrefix))
+        .map(id => id.replace(devicePrefix, ''));
+    const caps = detectCaps(allRelIds);
+    buildControlsPanel(caps, cmndStates);
 
     placeholder.style.display = 'none';
     detail.style.display = '';
@@ -787,6 +1248,46 @@ function updateDeviceStatus() {
         badge.textContent = isOnline ? '● ' + t('online') : '○ ' + t('offline');
     } else {
         badge.style.display = 'none';
+    }
+}
+
+// ── Command sending ──────────────────────────────────────────────────
+
+/**
+ * Send a boolean command via the cmnd channel (same as sendPower but generic).
+ *
+ * @param {string}  stateId - full state ID (may be stat or cmnd)
+ * @param {boolean} value
+ */
+async function sendCmd(stateId, value) {
+    const relId    = stateId.replace(namespace + '.', '');
+    const parts    = relId.split('.');
+    const shortDev = parts[0];
+    const key      = parts[parts.length - 1];
+    const cmdId    = namespace + '.' + shortDev + '.cmnd.' + key;
+
+    const writeId = (allStates[cmdId] !== undefined) ? cmdId : stateId;
+
+    try {
+        await socketCall('setState', writeId, { val: value, ack: false });
+        showToast(t('befehlGesendet'));
+    } catch (e) {
+        showToast(t('fehler') + ' ' + (e.message || e), true);
+    }
+}
+
+/**
+ * Send a raw value to a cmnd state by its full ID.
+ *
+ * @param {string} stateId - full state ID (cmnd channel)
+ * @param {*}      value
+ */
+async function sendCmdRaw(stateId, value) {
+    try {
+        await socketCall('setState', stateId, { val: value, ack: false });
+        showToast(t('befehlGesendet'));
+    } catch (e) {
+        showToast(t('fehler') + ' ' + (e.message || e), true);
     }
 }
 
