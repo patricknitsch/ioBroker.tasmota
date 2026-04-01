@@ -29,5 +29,8 @@
 	"topicPrefixHelp": "Ein oder mehrere MQTT-Topic-Präfixe, durch Komma getrennt (z.B. tasmota,home)",
 	"topicStructure": "Topic-Struktur",
 	"topicDeviceFirst": "Gerät zuerst (Gerät/Präfix/Thema)",
-	"topicPrefixFirst": "Präfix zuerst (Präfix/Gerät/Thema)"
+	"topicPrefixFirst": "Präfix zuerst (Präfix/Gerät/Thema)",
+	"dataSettings": "Dateneinstellungen",
+	"storeTeleData": "Telemetriedaten (tele) speichern",
+	"clearOnStart": "Alle Gerätezustände beim Neustart löschen"
 }

@@ -79,6 +79,8 @@
             transition: background .2s;
         }
         .btn-toolbar:hover { background: rgba(255,255,255,.35); }
+        .btn-toolbar-danger { background: rgba(211,47,47,.55); border-color: rgba(255,100,100,.7); }
+        .btn-toolbar-danger:hover { background: rgba(211,47,47,.8); }
 
         /* ── MAIN ── */
         #main { padding: 16px; }
@@ -343,6 +345,7 @@
     <div class="logo">🏠 Tasmota</div>
     <div class="spacer"></div>
     <button class="btn-toolbar" onclick="refreshAll()" data-i18n="aktualisieren">⟳ Refresh</button>
+    <button class="btn-toolbar btn-toolbar-danger" id="btnClear" onclick="clearDevices()" data-i18n="alleLoeschen">🗑 Clear devices</button>
     <button class="btn-toolbar" id="btnConfig" onclick="openConfig()" data-i18n="konfiguration">⚙ Configuration</button>
     <div id="connStatus">
         <span class="dot"></span><span id="connLabel" data-i18n="verbinde">Connecting…</span>
@@ -460,6 +463,9 @@ const TRANSLATIONS = {
         licht:              'Licht',
         leistung:           'Schalten',
         einblenden:         'Einblenden',
+        alleLoeschen:       '🗑 Geräte löschen',
+        loeschenBestaetigen:'Alle Geräteobjekte und -zustände wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+        loeschenErfolg:     'Alle Geräteobjekte gelöscht.',
     },
     en: {
         verbinde:           'Connecting…',
@@ -501,6 +507,9 @@ const TRANSLATIONS = {
         licht:              'Light',
         leistung:           'Power',
         einblenden:         'Fade',
+        alleLoeschen:       '🗑 Clear devices',
+        loeschenBestaetigen:'Really delete all device objects and states? This action cannot be undone.',
+        loeschenErfolg:     'All device objects cleared.',
     },
 };
 
@@ -1306,6 +1315,27 @@ async function sendPower(stateId, value) {
     try {
         await socketCall('setState', writeId, { val: value, ack: false });
         showToast(t('befehlGesendet'));
+    } catch (e) {
+        showToast(t('fehler') + ' ' + (e.message || e), true);
+    }
+}
+
+// ── Clear devices ──────────────────────────────────────────────────
+
+/**
+ * Ask the user to confirm, then delete all device objects via the
+ * adapter's clearDeviceObjects action (sendTo).
+ */
+async function clearDevices() {
+    if (!confirm(t('loeschenBestaetigen'))) {
+        return;
+    }
+    try {
+        // Use sendTo so the adapter itself handles the deletion safely
+        await socketCall('sendTo', namespace, 'clearDevices', {});
+        showToast(t('loeschenErfolg'));
+        // Refresh the UI after clearing
+        await refreshAll();
     } catch (e) {
         showToast(t('fehler') + ' ' + (e.message || e), true);
     }

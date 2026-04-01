@@ -29,5 +29,8 @@
 	"topicPrefixHelp": "One or more MQTT topic prefixes, separated by commas (e.g. tasmota,home)",
 	"topicStructure": "Topic Structure",
 	"topicDeviceFirst": "Device First (device/prefix/topic)",
-	"topicPrefixFirst": "Prefix First (prefix/device/topic)"
+	"topicPrefixFirst": "Prefix First (prefix/device/topic)",
+	"dataSettings": "Data Settings",
+	"storeTeleData": "Store telemetry data (tele)",
+	"clearOnStart": "Clear all device states on adapter restart"
 }

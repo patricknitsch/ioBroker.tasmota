@@ -2,6 +2,8 @@
 
 const utils = require('@iobroker/adapter-core');
 const mqtt = require('mqtt');
+// lib/commands.js ships as part of this adapter and is always present.
+// It provides command-state auto-creation based on device-type detection.
 const { setupCommandManagement } = require('./lib/commands');
 
 class Tasmota extends utils.Adapter {
@@ -20,7 +22,60 @@ class Tasmota extends utils.Adapter {
 
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
+		this.on('message', this.onMessage.bind(this));
 		this.on('unload', this.onUnload.bind(this));
+	}
+
+	/**
+	 * Handle messages sent via sendTo() from the admin tab or scripts.
+	 *
+	 * @param {ioBroker.Message} obj - message object
+	 */
+	async onMessage(obj) {
+		if (!obj || obj.command !== 'clearDevices') {
+			return;
+		}
+		await this.clearDeviceObjects();
+		if (obj.callback) {
+			this.sendTo(obj.from, obj.command, { result: 'ok' }, obj.callback);
+		}
+	}
+
+	/**
+	 * Delete all device objects (and their children) below the adapter namespace.
+	 * The `info` channel is preserved so connection state is always available.
+	 */
+	async clearDeviceObjects() {
+		this.log.info('Clearing all device objects...');
+		try {
+			const view = await this.getObjectViewAsync('system', 'device', {
+				startkey: `${this.namespace}.`,
+				endkey: `${this.namespace}.\u9999`,
+			});
+			if (!view || !view.rows) {
+				return;
+			}
+			const nsDepth = this.namespace.split('.').length;
+			for (const row of view.rows) {
+				const obj = row.value;
+				if (!obj) {
+					continue;
+				}
+				// Only direct children of the namespace (depth: ns + 1), skip info
+				if (obj._id.split('.').length !== nsDepth + 1) {
+					continue;
+				}
+				const shortId = obj._id.split('.').pop();
+				if (shortId === 'info') {
+					continue;
+				}
+				await this.delObjectAsync(shortId, { recursive: true });
+				this.log.debug(`Deleted device tree: ${shortId}`);
+			}
+			this.log.info('Device objects cleared.');
+		} catch (err) {
+			this.log.warn(`clearDeviceObjects: ${err.message}`);
+		}
 	}
 
 	/**
@@ -47,6 +102,11 @@ class Tasmota extends utils.Adapter {
 		});
 
 		this.setState('info.connection', false, true);
+
+		// Optionally clear all device objects on startup
+		if (this.config.clearOnStart) {
+			await this.clearDeviceObjects();
+		}
 
 		if (this.config.mode === 'server') {
 			await this.startMqttServer();
@@ -309,6 +369,11 @@ class Tasmota extends utils.Adapter {
 		}
 
 		if (!deviceId) {
+			return;
+		}
+
+		// Skip tele messages when the user has not enabled telemetry storage
+		if (prefix === 'tele' && !this.config.storeTeleData) {
 			return;
 		}
 

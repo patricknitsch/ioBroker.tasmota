@@ -29,5 +29,8 @@
 	"topicPrefixHelp": "Jeden lub więcej prefiksów tematów MQTT, oddzielonych przecinkami (np. tasmota,home)",
 	"topicStructure": "Struktura tematu",
 	"topicDeviceFirst": "Urządzenie pierwsze (urządzenie/prefiks/temat)",
-	"topicPrefixFirst": "Prefiks pierwszy (prefiks/urządzenie/temat)"
+	"topicPrefixFirst": "Prefiks pierwszy (prefiks/urządzenie/temat)",
+	"dataSettings": "Ustawienia danych",
+	"storeTeleData": "Przechowuj dane telemetryczne (tele)",
+	"clearOnStart": "Wyczyść wszystkie stany urządzeń przy ponownym uruchomieniu adaptera"
 }

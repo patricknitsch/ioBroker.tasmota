@@ -29,5 +29,8 @@
 	"topicPrefixHelp": "Um ou mais prefixos de tópicos MQTT, separados por vírgulas (ex. tasmota,home)",
 	"topicStructure": "Estrutura do tópico",
 	"topicDeviceFirst": "Dispositivo primeiro (dispositivo/prefixo/tópico)",
-	"topicPrefixFirst": "Prefixo primeiro (prefixo/dispositivo/tópico)"
+	"topicPrefixFirst": "Prefixo primeiro (prefixo/dispositivo/tópico)",
+	"dataSettings": "Configurações de dados",
+	"storeTeleData": "Armazenar dados de telemetria (tele)",
+	"clearOnStart": "Limpar todos os estados do dispositivo ao reiniciar o adaptador"
 }
