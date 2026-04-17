@@ -133,7 +133,9 @@
 		"brokerReconnectPeriod": 5000,
 		"brokerCleanSession": true,
 		"timeout": 300,
-		"brokerTopicStructure": "device-first"
+		"brokerTopicStructure": "device-first",
+		"clearOnStart": false,
+		"storeTeleData": false
 	},
 	"protectedNative": ["password", "brokerPassword"],
 	"encryptedNative": ["password", "brokerPassword"],

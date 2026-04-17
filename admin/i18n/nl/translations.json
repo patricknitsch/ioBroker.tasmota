@@ -29,5 +29,8 @@
 	"topicPrefixHelp": "Een of meer MQTT-onderwerpvoorvoegsels, gescheiden door komma's (bijv. tasmota,home)",
 	"topicStructure": "Onderwerpstructuur",
 	"topicDeviceFirst": "Apparaat eerst (apparaat/voorvoegsel/onderwerp)",
-	"topicPrefixFirst": "Voorvoegsel eerst (voorvoegsel/apparaat/onderwerp)"
+	"topicPrefixFirst": "Voorvoegsel eerst (voorvoegsel/apparaat/onderwerp)",
+	"dataSettings": "Gegevensinstellingen",
+	"storeTeleData": "Telemetriegegevens (tele) opslaan",
+	"clearOnStart": "Alle apparaatstaten wissen bij herstart van de adapter"
 }

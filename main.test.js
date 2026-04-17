@@ -144,3 +144,71 @@ describe('Tasmota helper methods', () => {
 		});
 	});
 });
+
+describe('processMqttMessage – tele filtering', () => {
+	/**
+	 * Build a minimal adapter stub that captures setObjectNotExists / setState
+	 * calls and honours config settings.
+	 *
+	 * @param {object} config - adapter config overrides
+	 */
+	function makeProcessStub(config) {
+		const stub = makeStub();
+		stub.config = { brokerTopicStructure: 'prefix-first', brokerTopicPrefix: '', ...config };
+		stub.namespace = 'tasmota.0';
+		stub.log = { debug: () => {}, info: () => {}, warn: () => {} };
+
+		stub.createdObjects = [];
+		stub.setStates = [];
+
+		stub.setObjectNotExistsAsync = async id => { stub.createdObjects.push(id); };
+		stub.setStateAsync = async (id, val) => { stub.setStates.push({ id, val }); };
+
+		stub.getTopicPrefixes = () => {
+			return (stub.config.brokerTopicPrefix || '').split(',').map(p => p.trim()).filter(Boolean);
+		};
+		stub.sanitizeId = input => input.replace(/[^A-Za-z0-9\-_]/g, '_');
+		stub.parseScalar = Tasmota.prototype.parseScalar;
+		stub.guessStateRole = Tasmota.prototype.guessStateRole;
+		stub.guessStateType = Tasmota.prototype.guessStateType;
+
+		stub.ensureObject = Tasmota.prototype.ensureObject.bind(stub);
+		stub.setStateAsAck = Tasmota.prototype.setStateAsAck.bind(stub);
+		stub.setStateValue = Tasmota.prototype.setStateValue.bind(stub);
+		stub.processJsonObject = Tasmota.prototype.processJsonObject.bind(stub);
+
+		return stub;
+	}
+
+	it('skips tele messages when storeTeleData is false (default)', async () => {
+		const stub = makeProcessStub({ storeTeleData: false });
+		await stub.processMqttMessage('tele/mydevice/STATE', '{"POWER":"ON"}');
+		expect(stub.createdObjects).to.have.lengthOf(0);
+		expect(stub.setStates).to.have.lengthOf(0);
+	});
+
+	it('processes tele messages when storeTeleData is true', async () => {
+		const stub = makeProcessStub({ storeTeleData: true });
+		await stub.processMqttMessage('tele/mydevice/STATE', '{"POWER":"ON"}');
+		// At least one object should have been created (device + channel + state)
+		expect(stub.createdObjects.length).to.be.greaterThan(0);
+	});
+
+	it('always processes cmnd messages regardless of storeTeleData', async () => {
+		const stub = makeProcessStub({ storeTeleData: false });
+		await stub.processMqttMessage('cmnd/mydevice/POWER', 'ON');
+		expect(stub.createdObjects.length).to.be.greaterThan(0);
+	});
+
+	it('always processes stat messages regardless of storeTeleData', async () => {
+		const stub = makeProcessStub({ storeTeleData: false });
+		await stub.processMqttMessage('stat/mydevice/RESULT', '{"POWER":"ON"}');
+		expect(stub.createdObjects.length).to.be.greaterThan(0);
+	});
+
+	it('skips tele messages in device-first topic structure', async () => {
+		const stub = makeProcessStub({ storeTeleData: false, brokerTopicStructure: 'device-first' });
+		await stub.processMqttMessage('mydevice/tele/STATE', '{"POWER":"ON"}');
+		expect(stub.createdObjects).to.have.lengthOf(0);
+	});
+});
