@@ -8,6 +8,9 @@ const { setupCommandManagement } = require('./lib/commands');
 // lib/datapoints.js provides the flat data-point map for structured mode.
 const { lookupDatapoint, STATUS_WRAPPER_COMMANDS } = require('./lib/datapoints');
 
+/** Delay (ms) before auto-querying a newly-discovered device's status. */
+const AUTO_QUERY_DELAY_MS = 1500;
+
 class Tasmota extends utils.Adapter {
 	/**
 	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
@@ -400,7 +403,7 @@ class Tasmota extends utils.Adapter {
 				this._seenStructuredDevices.add(safeDeviceId);
 				// Check after a short delay (so the triggering message can create the
 				// device object first) whether this device needs a full Status 0 query.
-				setTimeout(() => this._checkAndAutoQuery(safeDeviceId), 1500);
+				setTimeout(() => this._checkAndAutoQuery(safeDeviceId), AUTO_QUERY_DELAY_MS);
 			}
 
 			const command = remainingParts.join('_') || 'raw';
@@ -629,7 +632,7 @@ class Tasmota extends utils.Adapter {
 			parsedVal = value;
 		}
 
-		// @ts-expect-error - parsedVal is narrowed to a valid state value type
+		// @ts-expect-error - parsedVal may still be `unknown` at compile time; ioBroker accepts any JSON-safe value
 		await this.setStateAsync(stateId, { val: parsedVal, ack: true });
 	}
 
