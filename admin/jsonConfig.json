@@ -312,10 +312,22 @@
 			"text": "dataSettings",
 			"size": 5
 		},
+		"rawTopicMode": {
+			"type": "checkbox",
+			"label": "rawTopicMode",
+			"help": "rawTopicModeHelp",
+			"default": false,
+			"xs": 12,
+			"sm": 12,
+			"md": 12,
+			"lg": 12,
+			"xl": 12
+		},
 		"storeTeleData": {
 			"type": "checkbox",
 			"label": "storeTeleData",
 			"default": false,
+			"hidden": "!data.rawTopicMode",
 			"xs": 12,
 			"sm": 12,
 			"md": 12,

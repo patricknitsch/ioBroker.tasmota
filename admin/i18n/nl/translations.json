@@ -31,6 +31,8 @@
 	"topicDeviceFirst": "Apparaat eerst (apparaat/voorvoegsel/onderwerp)",
 	"topicPrefixFirst": "Voorvoegsel eerst (voorvoegsel/apparaat/onderwerp)",
 	"dataSettings": "Gegevensinstellingen",
+	"rawTopicMode": "Ruwe onderwerpsmodus (cmnd/stat/tele-hiërarchie weergeven)",
+	"rawTopicModeHelp": "Indien ingeschakeld, worden berichten opgeslagen in de ruwe cmnd/stat/tele-mappenstructuur. Indien uitgeschakeld (standaard), worden gegevens plat opgeslagen met juiste rollen en eenheden zoals in de ioBroker.sonoff-adapter, en worden nieuwe apparaten automatisch bevraagd.",
 	"storeTeleData": "Telemetriegegevens (tele) opslaan",
 	"clearOnStart": "Alle apparaatstaten wissen bij herstart van de adapter"
 }

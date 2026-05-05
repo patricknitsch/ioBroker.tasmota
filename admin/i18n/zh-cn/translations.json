@@ -31,6 +31,8 @@
 	"topicDeviceFirst": "设备优先 (设备/前缀/主题)",
 	"topicPrefixFirst": "前缀优先 (前缀/设备/主题)",
 	"dataSettings": "数据设置",
+	"rawTopicMode": "原始主题模式（显示 cmnd/stat/tele 层次结构）",
+	"rawTopicModeHelp": "启用后，消息将存储在原始的 cmnd/stat/tele 文件夹结构中。禁用（默认）时，数据将像 ioBroker.sonoff 适配器一样以正确的角色和单位平铺存储，新设备将自动查询。",
 	"storeTeleData": "存储遥测数据 (tele)",
 	"clearOnStart": "适配器重启时清除所有设备状态"
 }

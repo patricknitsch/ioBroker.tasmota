@@ -5,6 +5,8 @@ const mqtt = require('mqtt');
 // lib/commands.js ships as part of this adapter and is always present.
 // It provides command-state auto-creation based on device-type detection.
 const { setupCommandManagement } = require('./lib/commands');
+// lib/datapoints.js provides the flat data-point map for structured mode.
+const { lookupDatapoint, STATUS_WRAPPER_COMMANDS } = require('./lib/datapoints');
 
 class Tasmota extends utils.Adapter {
 	/**
@@ -19,6 +21,9 @@ class Tasmota extends utils.Adapter {
 		this.mqttClient = null;
 		this.aedesServer = null;
 		this.netServer = null;
+
+		/** @type {Set<string>} device IDs already seen in structured mode */
+		this._seenStructuredDevices = new Set();
 
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
@@ -114,11 +119,15 @@ class Tasmota extends utils.Adapter {
 			await this.startMqttClient();
 		}
 
-		// Subscribe to cmnd states so user-initiated commands are published over MQTT
-		await this.subscribeStatesAsync('*.cmnd.*');
-
-		// Set up automatic command-state creation based on device-type detection
-		await setupCommandManagement(this);
+		if (this.config.rawTopicMode) {
+			// Raw mode: subscribe to cmnd states and set up command-state auto-creation
+			await this.subscribeStatesAsync('*.cmnd.*');
+			await setupCommandManagement(this);
+		} else {
+			// Structured mode: subscribe to flat device states (device.FLATKEY)
+			// so writes to writable states (e.g. device.POWER) trigger MQTT publishes
+			await this.subscribeStatesAsync('*.*');
+		}
 	}
 
 	/**
@@ -372,13 +381,40 @@ class Tasmota extends utils.Adapter {
 			return;
 		}
 
+		const safeDeviceId = this.sanitizeId(deviceId);
+
+		// ── STRUCTURED MODE ────────────────────────────────────────────────────
+		if (!this.config.rawTopicMode) {
+			// Ignore cmnd messages in structured mode — they are outgoing only
+			if (prefix === 'cmnd') {
+				return;
+			}
+
+			// Lazy-initialise (test stubs don't call the constructor)
+			if (!this._seenStructuredDevices) {
+				this._seenStructuredDevices = new Set();
+			}
+
+			// Auto-query new devices when first seen
+			if (!this._seenStructuredDevices.has(safeDeviceId)) {
+				this._seenStructuredDevices.add(safeDeviceId);
+				// Check after a short delay (so the triggering message can create the
+				// device object first) whether this device needs a full Status 0 query.
+				setTimeout(() => this._checkAndAutoQuery(safeDeviceId), 1500);
+			}
+
+			const command = remainingParts.join('_') || 'raw';
+			await this.processStructuredMessage(safeDeviceId, prefix, command, payload);
+			return;
+		}
+
+		// ── RAW MODE (existing behaviour) ─────────────────────────────────────
+
 		// Skip tele messages when the user has not enabled telemetry storage
 		if (prefix === 'tele' && !this.config.storeTeleData) {
 			return;
 		}
 
-		// Sanitize IDs
-		const safeDeviceId = this.sanitizeId(deviceId);
 		const safePrefix = prefix ? this.sanitizeId(prefix) : null;
 
 		// Build state path: deviceId[.prefix][.remainingParts...]
@@ -424,6 +460,280 @@ class Tasmota extends utils.Adapter {
 				this.guessStateType(payload),
 			);
 			await this.setStateAsAck(baseStateId, this.parseScalar(payload));
+		}
+	}
+
+	// ── Structured-mode processing ────────────────────────────────────────────
+
+	/**
+	 * Process a single MQTT message in structured mode.
+	 * Data is stored flat under the device root (e.g. "device.POWER", "device.Wifi_RSSI")
+	 * with proper ioBroker roles, types and units from the datapoints table.
+	 *
+	 * @param {string} deviceId  - sanitized device ID (below adapter namespace)
+	 * @param {string|null} prefix   - Tasmota prefix ("tele","stat") or null
+	 * @param {string} command   - command / sub-topic (e.g. "STATE", "SENSOR", "STATUS11")
+	 * @param {string} payload   - raw MQTT payload
+	 */
+	async processStructuredMessage(deviceId, prefix, command, payload) {
+		// Ensure device-level object exists
+		await this.ensureObject(deviceId, 'device', deviceId);
+
+		// Try to parse JSON
+		let parsed = null;
+		try {
+			parsed = JSON.parse(payload);
+		} catch {
+			// not JSON
+		}
+
+		// Resolve STATUS wrapper keys (e.g. StatusSTS → treat as STATE)
+		let effectiveCommand = command;
+		let jsonData = parsed;
+
+		if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+			const topKeys = Object.keys(parsed);
+			if (topKeys.length === 1) {
+				const wrapperKey = topKeys[0];
+				if (STATUS_WRAPPER_COMMANDS[wrapperKey]) {
+					// Known wrapper → unwrap and treat as STATE or SENSOR
+					effectiveCommand = STATUS_WRAPPER_COMMANDS[wrapperKey];
+					jsonData = parsed[wrapperKey];
+				} else if (wrapperKey.startsWith('Status')) {
+					// Other STATUS wrappers (StatusFWR, StatusNET, StatusLOG, etc.)
+					// Store flat under the wrapper key as a namespace prefix
+					if (typeof parsed[wrapperKey] === 'object' && parsed[wrapperKey] !== null) {
+						await this.flattenAndStore(deviceId, wrapperKey, parsed[wrapperKey]);
+					}
+					return;
+				}
+			}
+		}
+
+		if (effectiveCommand === 'STATE' || effectiveCommand === 'RESULT') {
+			// STATE / RESULT: flat JSON at the device root
+			// Contains POWER, Dimmer, Color, CT, Wifi.*, etc.
+			if (jsonData !== null && typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+				await this.flattenAndStore(deviceId, '', jsonData);
+			} else if (jsonData !== null) {
+				await this.storeStructuredState(deviceId, command, String(jsonData));
+			}
+		} else if (effectiveCommand === 'SENSOR') {
+			// SENSOR: nested structure – each top-level key is a sensor name or "ENERGY"
+			if (jsonData !== null && typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+				for (const [sensorKey, sensorVal] of Object.entries(jsonData)) {
+					if (sensorKey === 'Time') {
+						continue; // timestamp is already in STATE
+					}
+					if (sensorVal !== null && typeof sensorVal === 'object' && !Array.isArray(sensorVal)) {
+						// Named sensor sub-object (DS18B20, BME280, ENERGY, …)
+						await this.flattenAndStore(deviceId, sensorKey, sensorVal);
+					} else {
+						// Scalar at sensor root level
+						await this.storeStructuredState(deviceId, sensorKey, sensorVal);
+					}
+				}
+			}
+		} else {
+			// Generic fallback for unknown commands
+			if (jsonData !== null && typeof jsonData === 'object' && !Array.isArray(jsonData)) {
+				const keyPrefix = command && command !== 'raw' ? command : '';
+				await this.flattenAndStore(deviceId, keyPrefix, jsonData);
+			} else if (payload) {
+				await this.storeStructuredState(deviceId, command, payload);
+			}
+		}
+	}
+
+	/**
+	 * Recursively flatten a JSON object and store each leaf as a state.
+	 * Nested keys are joined with "_" (e.g. Wifi.RSSI → "Wifi_RSSI").
+	 *
+	 * @param {string} deviceId - device root ID
+	 * @param {string} prefix   - current flat path prefix (empty string for root level)
+	 * @param {object} obj      - object to flatten
+	 */
+	async flattenAndStore(deviceId, prefix, obj) {
+		if (!obj || typeof obj !== 'object') {
+			return;
+		}
+		for (const [key, value] of Object.entries(obj)) {
+			if (key === 'Time') {
+				continue; // skip Tasmota timestamps from SENSOR sub-objects
+			}
+			const flatKey = prefix ? `${prefix}_${key}` : key;
+			if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+				// Nested object – recurse
+				await this.flattenAndStore(deviceId, flatKey, value);
+			} else {
+				// Leaf value
+				const strVal = Array.isArray(value) ? JSON.stringify(value) : value;
+				await this.storeStructuredState(deviceId, flatKey, strVal);
+			}
+		}
+	}
+
+	/**
+	 * Create (if missing) and update a single structured-mode state.
+	 * Looks up the data-point definition from the flat key; falls back to
+	 * generic role/type heuristics for unknown keys.
+	 *
+	 * @param {string} deviceId - device root ID
+	 * @param {string} flatKey  - flat key (e.g. "POWER", "Wifi_RSSI", "ENERGY_Voltage")
+	 * @param {unknown} value   - value to store
+	 */
+	async storeStructuredState(deviceId, flatKey, value) {
+		const safeKey = this.sanitizeId(flatKey);
+		const stateId = `${deviceId}.${safeKey}`;
+		const def = lookupDatapoint(flatKey);
+
+		if (def) {
+			await this.setObjectNotExistsAsync(stateId, {
+				type: 'state',
+				common: {
+					name: def.name,
+					type: /** @type {ioBroker.CommonType} */ (def.type),
+					role: def.role,
+					read: def.read,
+					write: def.write,
+					...(def.unit !== undefined ? { unit: def.unit } : {}),
+					...(def.min !== undefined ? { min: def.min } : {}),
+					...(def.max !== undefined ? { max: def.max } : {}),
+				},
+				native: {},
+			});
+		} else {
+			// Generic fallback
+			const strVal = String(value);
+			await this.ensureObject(
+				stateId,
+				'state',
+				safeKey,
+				this.guessStateRole(strVal),
+				this.guessStateType(strVal),
+			);
+		}
+
+		// Convert value to the declared type
+		let parsedVal;
+		if (def && def.type === 'boolean') {
+			parsedVal = this.parseScalar(String(value));
+		} else if (def && def.type === 'number') {
+			const n = Number(value);
+			parsedVal = isNaN(n) ? String(value) : n;
+		} else if (def && def.type === 'string') {
+			parsedVal = String(value);
+		} else if (typeof value === 'string') {
+			parsedVal = this.parseScalar(value);
+		} else {
+			parsedVal = value;
+		}
+
+		// @ts-expect-error - parsedVal is narrowed to a valid state value type
+		await this.setStateAsync(stateId, { val: parsedVal, ack: true });
+	}
+
+	/**
+	 * Check whether a newly-seen device already has state objects.
+	 * If it has very few states (i.e. it is brand new), publish a Status 0
+	 * command to retrieve all device information without requiring a restart.
+	 *
+	 * @param {string} deviceId - sanitized device ID
+	 */
+	async _checkAndAutoQuery(deviceId) {
+		try {
+			const stateView = await this.getObjectViewAsync('system', 'state', {
+				startkey: `${this.namespace}.${deviceId}.`,
+				endkey: `${this.namespace}.${deviceId}.\u9999`,
+			});
+			const stateCount = stateView && stateView.rows ? stateView.rows.length : 0;
+			// Query if the device has fewer than 3 states — it likely just appeared
+			if (stateCount < 3) {
+				this.autoQueryDevice(deviceId);
+			}
+		} catch {
+			// Ignore errors — auto-query is best-effort
+		}
+	}
+
+	/**
+	 * Publish "Status 0" (all status) to a Tasmota device via MQTT.
+	 * The response populates all device data without requiring a restart.
+	 *
+	 * @param {string} deviceId - sanitized device ID
+	 */
+	autoQueryDevice(deviceId) {
+		this.log.info(`Auto-querying status for new device: ${deviceId}`);
+		this.publishTasmotaCmd(deviceId, 'Status', '0');
+	}
+
+	/**
+	 * Publish a Tasmota command to a device via MQTT.
+	 * Works in both client and server mode, and respects the configured
+	 * topic structure and broker prefix.
+	 *
+	 * @param {string} deviceId  - sanitized device ID
+	 * @param {string} cmdName   - Tasmota command (e.g. "POWER", "Status", "ShutterPosition1")
+	 * @param {unknown} value    - value to send (boolean → "ON"/"OFF", else String)
+	 */
+	publishTasmotaCmd(deviceId, cmdName, value) {
+		const structure = this.config.brokerTopicStructure || 'prefix-first';
+		let topic;
+		if (structure === 'device-first') {
+			topic = `${deviceId}/cmnd/${cmdName}`;
+		} else {
+			topic = `cmnd/${deviceId}/${cmdName}`;
+		}
+		const topicPrefixes = this.getTopicPrefixes();
+		if (topicPrefixes.length > 0) {
+			topic = `${topicPrefixes[0]}/${topic}`;
+		}
+
+		let strValue;
+		if (value === true) {
+			strValue = 'ON';
+		} else if (value === false) {
+			strValue = 'OFF';
+		} else {
+			strValue = value !== null && value !== undefined ? String(value) : '';
+		}
+
+		this._publishMqtt(topic, strValue);
+	}
+
+	/**
+	 * Low-level MQTT publish that works in both client and server (aedes) mode.
+	 *
+	 * @param {string} topic - full MQTT topic
+	 * @param {string} value - string payload
+	 */
+	_publishMqtt(topic, value) {
+		if (this.mqttClient && this.mqttClient.connected) {
+			this.mqttClient.publish(topic, value, { qos: 0 }, err => {
+				if (err) {
+					this.log.error(`Failed to publish ${topic}: ${err.message}`);
+				} else {
+					this.log.debug(`Published: ${topic} = ${value}`);
+				}
+			});
+		} else if (this.aedesServer) {
+			this.aedesServer.publish(
+				{
+					cmd: 'publish',
+					qos: 0,
+					topic,
+					payload: Buffer.from(value),
+					retain: false,
+					dup: false,
+				},
+				err => {
+					if (err) {
+						this.log.error(`Failed to publish ${topic}: ${err.message}`);
+					} else {
+						this.log.debug(`Published via server: ${topic} = ${value}`);
+					}
+				},
+			);
 		}
 	}
 
@@ -632,27 +942,41 @@ class Tasmota extends utils.Adapter {
 		}
 
 		// A state was changed from outside (command from user)
-		// Only handle cmnd states – stat and tele come from the device and must not be echoed back
 		const relativeId = id.replace(`${this.namespace}.`, '');
 		const parts = relativeId.split('.');
 
+		if (!this.config.rawTopicMode) {
+			// ── STRUCTURED MODE ────────────────────────────────────────────────
+			// Flat device state written → publish to Tasmota cmnd topic
+			// Expected pattern: device.FLATKEY (exactly 2 parts)
+			if (parts.length !== 2) {
+				return;
+			}
+			const [deviceId, flatKey] = parts;
+			const def = lookupDatapoint(flatKey);
+			if (!def || !def.write || !def.cmd) {
+				return; // not a writable datapoint
+			}
+			this.publishTasmotaCmd(deviceId, def.cmd, state.val);
+			return;
+		}
+
+		// ── RAW MODE ──────────────────────────────────────────────────────────
+		// Only handle cmnd states – stat and tele come from the device and must not be echoed back
 		if (parts.length < 3 || parts[1] !== 'cmnd') {
 			return;
 		}
 
 		// Reconstruct a Tasmota command topic from the state ID
 		const device = parts[0];
-		const prefix = 'cmnd';
 		const command = parts.slice(2).join('/');
 
 		const structure = this.config.brokerTopicStructure || 'prefix-first';
 		let topic;
 		if (structure === 'device-first') {
-			// Format: {device}/cmnd/{command}
-			topic = `${device}/${prefix}/${command}`;
+			topic = `${device}/cmnd/${command}`;
 		} else {
-			// Format: cmnd/{device}/{command}
-			topic = `${prefix}/${device}/${command}`;
+			topic = `cmnd/${device}/${command}`;
 		}
 
 		// Prepend first broker topic prefix if configured
@@ -671,33 +995,7 @@ class Tasmota extends utils.Adapter {
 			value = state.val !== null && state.val !== undefined ? String(state.val) : '';
 		}
 
-		if (this.mqttClient && this.mqttClient.connected) {
-			this.mqttClient.publish(topic, value, { qos: 0 }, err => {
-				if (err) {
-					this.log.error(`Failed to publish ${topic}: ${err.message}`);
-				} else {
-					this.log.debug(`Published: ${topic} = ${value}`);
-				}
-			});
-		} else if (this.aedesServer) {
-			this.aedesServer.publish(
-				{
-					cmd: 'publish',
-					qos: 0,
-					topic,
-					payload: Buffer.from(value),
-					retain: false,
-					dup: false,
-				},
-				err => {
-					if (err) {
-						this.log.error(`Failed to publish ${topic}: ${err.message}`);
-					} else {
-						this.log.debug(`Published via server: ${topic} = ${value}`);
-					}
-				},
-			);
-		}
+		this._publishMqtt(topic, value);
 	}
 }
 

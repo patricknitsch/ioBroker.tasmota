@@ -135,7 +135,8 @@
 		"timeout": 300,
 		"brokerTopicStructure": "device-first",
 		"clearOnStart": false,
-		"storeTeleData": false
+		"storeTeleData": false,
+		"rawTopicMode": false
 	},
 	"protectedNative": ["password", "brokerPassword"],
 	"encryptedNative": ["password", "brokerPassword"],

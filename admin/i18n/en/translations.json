@@ -31,6 +31,8 @@
 	"topicDeviceFirst": "Device First (device/prefix/topic)",
 	"topicPrefixFirst": "Prefix First (prefix/device/topic)",
 	"dataSettings": "Data Settings",
+	"rawTopicMode": "Raw topic mode (show cmnd/stat/tele hierarchy)",
+	"rawTopicModeHelp": "When enabled, messages are stored in the raw cmnd/stat/tele folder structure. When disabled (default), data is stored flat with proper roles and units like the ioBroker.sonoff adapter, and new devices are queried automatically.",
 	"storeTeleData": "Store telemetry data (tele)",
 	"clearOnStart": "Clear all device states on adapter restart"
 }

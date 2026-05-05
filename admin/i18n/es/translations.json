@@ -31,6 +31,8 @@
 	"topicDeviceFirst": "Dispositivo primero (dispositivo/prefijo/tema)",
 	"topicPrefixFirst": "Prefijo primero (prefijo/dispositivo/tema)",
 	"dataSettings": "Configuración de datos",
+	"rawTopicMode": "Modo de tema sin procesar (mostrar jerarquía cmnd/stat/tele)",
+	"rawTopicModeHelp": "Cuando está activado, los mensajes se almacenan en la estructura de carpetas raw cmnd/stat/tele. Cuando está desactivado (predeterminado), los datos se almacenan de forma plana con roles y unidades correctos como en el adaptador ioBroker.sonoff, y los nuevos dispositivos se consultan automáticamente.",
 	"storeTeleData": "Almacenar datos de telemetría (tele)",
 	"clearOnStart": "Borrar todos los estados del dispositivo al reiniciar el adaptador"
 }

@@ -31,6 +31,8 @@
 	"topicDeviceFirst": "Gerät zuerst (Gerät/Präfix/Thema)",
 	"topicPrefixFirst": "Präfix zuerst (Präfix/Gerät/Thema)",
 	"dataSettings": "Dateneinstellungen",
+	"rawTopicMode": "Rohdaten-Modus (cmnd/stat/tele-Hierarchie anzeigen)",
+	"rawTopicModeHelp": "Wenn aktiviert, werden Nachrichten in der rohen cmnd/stat/tele-Ordnerstruktur gespeichert. Wenn deaktiviert (Standard), werden Daten flach mit korrekten Rollen und Einheiten wie im ioBroker.sonoff-Adapter gespeichert, und neue Geräte werden automatisch abgefragt.",
 	"storeTeleData": "Telemetriedaten (tele) speichern",
 	"clearOnStart": "Alle Gerätezustände beim Neustart löschen"
 }

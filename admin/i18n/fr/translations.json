@@ -31,6 +31,8 @@
 	"topicDeviceFirst": "Appareil en premier (appareil/préfixe/sujet)",
 	"topicPrefixFirst": "Préfixe en premier (préfixe/appareil/sujet)",
 	"dataSettings": "Paramètres de données",
+	"rawTopicMode": "Mode sujet brut (afficher la hiérarchie cmnd/stat/tele)",
+	"rawTopicModeHelp": "Lorsqu'activé, les messages sont stockés dans la structure de dossiers brute cmnd/stat/tele. Lorsque désactivé (par défaut), les données sont stockées à plat avec des rôles et unités corrects comme dans l'adaptateur ioBroker.sonoff, et les nouveaux appareils sont interrogés automatiquement.",
 	"storeTeleData": "Stocker les données de télémétrie (tele)",
 	"clearOnStart": "Effacer tous les états des appareils au redémarrage de l'adaptateur"
 }
