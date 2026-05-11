@@ -143,8 +143,8 @@ Ab Version 0.0.4 werden Geräte im **ioBroker-Admin → Device Manager** angezei
 
 Jedes Tasmota-Gerät erscheint als Gerätekarte im Device Manager mit:
 
-- **Verbindungsstatus** (`status.online`) — abgeleitet aus dem LWT-Topic
-- **WLAN-RSSI** (`status.rssi`) — Signalstärke in dBm
+- **Verbindungsstatus** (`info.online`) — abgeleitet aus dem LWT-Topic
+- **WLAN-RSSI** (`wifi.rssi`) — Signalstärke in dBm
 - **IP-Adresse und Hostname** — befüllt nach der Status-0-Antwort
 - **Energiewerte** — Spannung, Leistung, Verbrauch (sofern das Gerät Energiemessung unterstützt)
 
@@ -165,14 +165,8 @@ Jedes Tasmota-Gerät erhält folgendes strukturiertes Kanal-Layout:
 ```
 tasmota.0
 └── office_light                  (device)
-    ├── status                    (channel — immer erstellt)
-    │   ├── online                (boolean, indicator.connected)
-    │   ├── rssi                  (number, dBm, value.rssi)
-    │   ├── signal                (number, %, value)
-    │   ├── ssid                  (string, info.ssid)
-    │   ├── linkCount             (number, value)
-    │   └── heap                  (number, kB, value)
     ├── info                      (channel — immer erstellt)
+    │   ├── online                (boolean, indicator.connected)
     │   ├── hostname              (string, info.name)
     │   ├── ip                    (string, info.ip)
     │   ├── mac                   (string, info.mac)
@@ -180,6 +174,17 @@ tasmota.0
     │   ├── hardware              (string, info.hardware)
     │   ├── uptime                (string, info.uptime)
     │   └── friendlyName          (string, info.name)
+    ├── wifi                      (channel — immer erstellt)
+    │   ├── rssi                  (number, dBm, value.rssi)
+    │   ├── signal                (number, %, value)
+    │   ├── ssid                  (string, info.ssid)
+    │   ├── bssid                 (string, info.mac)
+    │   ├── channel               (number, value)
+    │   └── linkCount             (number, value)
+    ├── status                    (channel — immer erstellt)
+    │   ├── heap                  (number, kB, value)
+    │   ├── loadAvg               (number, %, value)
+    │   └── mqttCount             (number, value)
     ├── controls                  (channel — immer erstellt)
     │   ├── POWER                 (boolean, switch.power, schreibbar)
     │   ├── POWER1 … POWER8       (boolean, switch.power, schreibbar)
@@ -219,15 +224,26 @@ Unbekannte MQTT-Nachrichten, die keinem bekannten Muster entsprechen, werden im 
 
 | Datenpunkt | Quell-MQTT-Nachricht | Einheit | Beschreibung |
 |-----------|---------------------|---------|-------------|
-| `status.online` | `tele/LWT` | — | Online / Offline |
-| `status.rssi` | `tele/STATE Wifi.RSSI` | dBm | WLAN-Signalstärke |
-| `status.signal` | `tele/STATE Wifi.Signal` | % | WLAN-Signalqualität |
-| `status.ssid` | `tele/STATE Wifi.SSId` | — | WLAN-Netzwerkname |
+| `status.heap` | `tele/STATE Heap` | kB | Freier Heap-Speicher |
+| `status.loadAvg` | `tele/STATE LoadAvg` | % | CPU-Auslastung |
+| `status.mqttCount` | `tele/STATE MqttCount` | — | MQTT-Verbindungsanzahl |
+
+### WLAN (nur lesbar)
+
+| Datenpunkt | Quell-MQTT-Nachricht | Einheit | Beschreibung |
+|-----------|---------------------|---------|-------------|
+| `wifi.rssi` | `tele/STATE Wifi.RSSI` | dBm | WLAN-Signalstärke |
+| `wifi.signal` | `tele/STATE Wifi.Signal` | % | WLAN-Signalqualität |
+| `wifi.ssid` | `tele/STATE Wifi.SSId` | — | WLAN-Netzwerkname |
+| `wifi.bssid` | `tele/STATE Wifi.BSSId` | — | Access-Point-MAC |
+| `wifi.channel` | `tele/STATE Wifi.Channel` | — | WLAN-Kanal |
+| `wifi.linkCount` | `tele/STATE Wifi.LinkCount` | — | Verbindungsanzahl |
 
 ### Info (nur lesbar, aus Status-0-Antwort)
 
 | Datenpunkt | Quelle | Beschreibung |
 |-----------|--------|-------------|
+| `info.online` | `tele/LWT` | Online / Offline |
 | `info.hostname` | `stat/STATUS5` | Gerätehostname |
 | `info.ip` | `stat/STATUS5` | IP-Adresse |
 | `info.mac` | `stat/STATUS5` | MAC-Adresse |

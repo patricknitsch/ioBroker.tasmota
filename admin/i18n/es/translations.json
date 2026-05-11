@@ -29,9 +29,8 @@
 	"topicPrefixHelp": "Uno o más prefijos de temas MQTT, separados por comas (p. ej. tasmota,home)",
 	"topicStructure": "Estructura de temas",
 	"topicDeviceFirst": "Dispositivo primero (dispositivo/prefijo/tema)",
-	"topicPrefixFirst": "Prefijo primero (prefijo/dispositivo/tema)"
-,
-"dataSettings": "Configuración de datos",
+	"topicPrefixFirst": "Prefijo primero (prefijo/dispositivo/tema)",
+	"dataSettings": "Configuración de datos",
 	"clearOnRestart": "Borrar datos del dispositivo al reiniciar",
 	"clearOnRestartHelp": "Eliminar todos los objetos y estados de dispositivos almacenados al iniciar el adaptador."
 }

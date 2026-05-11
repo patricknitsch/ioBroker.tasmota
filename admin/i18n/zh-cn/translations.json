@@ -29,9 +29,8 @@
 	"topicPrefixHelp": "一个或多个MQTT主题前缀，用逗号分隔（例如 tasmota,home）",
 	"topicStructure": "主题结构",
 	"topicDeviceFirst": "设备优先 (设备/前缀/主题)",
-	"topicPrefixFirst": "前缀优先 (前缀/设备/主题)"
-,
-"dataSettings": "数据设置",
+	"topicPrefixFirst": "前缀优先 (前缀/设备/主题)",
+	"dataSettings": "数据设置",
 	"clearOnRestart": "重启时清除设备数据",
 	"clearOnRestartHelp": "启动适配器时删除所有存储的设备对象和状态。"
 }
