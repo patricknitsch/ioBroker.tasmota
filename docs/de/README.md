@@ -7,9 +7,10 @@
 3. [Verbindungsmodi](#3-verbindungsmodi)
 4. [Konfigurationsreferenz](#4-konfigurationsreferenz)
 5. [Topic-Einstellungen](#5-topic-einstellungen)
-6. [Geräteübersicht-Tab](#6-geräteübersicht-tab)
-7. [Unterstützte Gerätetypen & Datenpunkte](#7-unterstützte-gerätetypen--datenpunkte)
-8. [Architektur](#8-architektur)
+6. [Device Manager](#6-device-manager)
+7. [Objektbaum-Struktur](#7-objektbaum-struktur)
+8. [Unterstützte Datenpunkte](#8-unterstützte-datenpunkte)
+9. [Architektur](#9-architektur)
 
 ---
 
@@ -22,10 +23,13 @@ Alle Tasmota-Geräte werden **automatisch erkannt** — eine manuelle Konfigurat
 ### Hauptmerkmale
 
 - **Zwei Verbindungsmodi**: Integrierter MQTT-Broker (Servermodus) oder externer Broker als Client (Clientmodus)
-- **Auto-Discovery**: Geräte und ihre Datenpunkte werden automatisch aus eingehenden MQTT-Nachrichten erstellt
+- **Strukturierter Objektbaum**: Alle Daten werden in Standardkanäle klassifiziert (`status`, `info`, `energy`, `sensors`, `controls`) mit korrekten Typen, Rollen und Einheiten
+- **Auto-Discovery**: Neue Geräte werden automatisch erkannt; sofort nach der Erkennung wird eine Status-0-Anfrage gesendet, um alle Info-Kanäle zu befüllen
+- **Device Manager Integration**: Geräte erscheinen im ioBroker-Admin Device Manager — kein separater Tab erforderlich
+- **Typisierte Datenpunkte**: Feldtypen, ioBroker-Rollen und Einheiten sind für alle bekannten Tasmota-Werte vordefiniert, angelehnt an den ioBroker.sonoff-Adapter
 - **Mehrere Topic-Präfixe**: Es können mehrere MQTT-Topic-Präfixe gleichzeitig überwacht werden
 - **Flexible Topic-Struktur**: Unterstützt `device-first`- und `prefix-first`-Tasmota-FullTopic-Formate
-- **Geräteübersicht-Tab**: Integriertes Admin-Panel mit Live-Zustandsaktualisierungen, EIN/AUS-Steuerung und Dark-Mode-Unterstützung
+- **Schreibbare Steuerungen**: Relais (POWER*), Dimmer, Farbe und Farbtemperatur sind als schreibbare Datenpunkte modelliert
 - **Mehrsprachig**: Oberfläche in 12 Sprachen verfügbar
 
 ---
@@ -131,32 +135,140 @@ Tasmota unterstützt zwei FullTopic-Layouts. Die passende Option muss zur Tasmot
 
 ---
 
-## 6. Geräteübersicht-Tab
+## 6. Device Manager
 
-Der Adapter fügt dem ioBroker-Admin-Interface einen **Geräteübersicht**-Tab hinzu.
+Ab Version 0.0.4 werden Geräte im **ioBroker-Admin → Device Manager** angezeigt anstatt in einem separaten Tab.
 
-### Zugriff auf den Tab
+### Was angezeigt wird
 
-ioBroker-Admin öffnen und den Tab **Geräteübersicht** im Adapterbereich auswählen.
+Jedes Tasmota-Gerät erscheint als Gerätekarte im Device Manager mit:
 
-### Funktionen
+- **Verbindungsstatus** (`status.online`) — abgeleitet aus dem LWT-Topic
+- **WLAN-RSSI** (`status.rssi`) — Signalstärke in dBm
+- **IP-Adresse und Hostname** — befüllt nach der Status-0-Antwort
+- **Energiewerte** — Spannung, Leistung, Verbrauch (sofern das Gerät Energiemessung unterstützt)
 
-| Funktion | Beschreibung |
-|----------|-------------|
-| Geräteauswahl | Dropdown zum Wechseln zwischen allen erkannten Geräten |
-| Online-/Offline-Badge | Basierend auf LWT (Last Will Testament) oder STATUS-Nachricht |
-| Befehle (cmnd) | Schreibbare Datenpunkte; EIN/AUS-Buttons für Relais |
-| Status (stat) | Schreibgeschützte Datenpunkte vom Gerät |
-| Live-Updates | Echtzeit-Datenpunktänderungen über ioBroker-Socket-Abonnement |
-| Konfigurationsschaltfläche | Öffnet direkt die Instanzkonfiguration |
-| Dark Mode | Folgt automatisch dem ioBroker-Admin-Theme |
-| Mehrsprachig | Deutsch und Englisch (aus Admin-Sprache erkannt) |
+### Geräte steuern
 
-### Leistungssteuerung
+Schreibbare Datenpunkte (`controls.*`) können direkt aus dem ioBroker-Admin-Objektbaum oder aus Skripten heraus geändert werden. Wenn ein `controls.*`-Datenpunkt geschrieben wird (ack = false), veröffentlicht der Adapter das entsprechende `cmnd/…` MQTT-Topic an das Gerät.
 
-Um ein Relais umzuschalten, auf die Schaltfläche **EIN** oder **AUS** im Befehlsbereich klicken. Der Adapter veröffentlicht den Befehl an das entsprechende `cmnd`-MQTT-Topic.
+### Rückwärtskompatibilität
+
+Ältere `cmnd.*`-Datenpunkte (aus Adapterversionen vor 0.0.4) werden weiterhin für Schreiboperationen akzeptiert. Sowohl `controls.POWER` als auch `cmnd.POWER` lösen dieselbe MQTT-Veröffentlichung aus.
 
 ---
+
+## 7. Objektbaum-Struktur
+
+Jedes Tasmota-Gerät erhält folgendes strukturiertes Kanal-Layout:
+
+```
+tasmota.0
+└── office_light                  (device)
+    ├── status                    (channel — immer erstellt)
+    │   ├── online                (boolean, indicator.connected)
+    │   ├── rssi                  (number, dBm, value.rssi)
+    │   ├── signal                (number, %, value)
+    │   ├── ssid                  (string, info.ssid)
+    │   ├── linkCount             (number, value)
+    │   └── heap                  (number, kB, value)
+    ├── info                      (channel — immer erstellt)
+    │   ├── hostname              (string, info.name)
+    │   ├── ip                    (string, info.ip)
+    │   ├── mac                   (string, info.mac)
+    │   ├── version               (string, info.firmware)
+    │   ├── hardware              (string, info.hardware)
+    │   ├── uptime                (string, info.uptime)
+    │   └── friendlyName          (string, info.name)
+    ├── controls                  (channel — immer erstellt)
+    │   ├── POWER                 (boolean, switch.power, schreibbar)
+    │   ├── POWER1 … POWER8       (boolean, switch.power, schreibbar)
+    │   ├── Dimmer                (number, %, level.dimmer, schreibbar)
+    │   ├── Color                 (string, schreibbar)
+    │   └── CT                    (number, schreibbar)
+    ├── energy                    (channel — bei Energiedaten erstellt)
+    │   ├── voltage               (number, V, value.voltage)
+    │   ├── current               (number, A, value.current)
+    │   ├── power                 (number, W, value.power)
+    │   ├── today                 (number, kWh, value.power.consumption)
+    │   ├── yesterday             (number, kWh, value.power.consumption)
+    │   └── total                 (number, kWh, value.power.consumption)
+    └── sensors                   (channel — bei Sensordaten erstellt)
+        ├── DHT22_Temperature     (number, °C, value.temperature)
+        ├── DHT22_Humidity        (number, %, value.humidity)
+        └── …                     (weitere Sensorfelder)
+```
+
+Unbekannte MQTT-Nachrichten, die keinem bekannten Muster entsprechen, werden im Kanal `raw` als String-Fallback gespeichert, damit keine Daten verloren gehen.
+
+---
+
+## 8. Unterstützte Datenpunkte
+
+### Steuerungen (schreibbar)
+
+| Datenpunkt | MQTT-Topic (wird gesendet) | Typ | Beschreibung |
+|-----------|---------------------------|-----|-------------|
+| `controls.POWER` | `cmnd/{device}/POWER` | boolean | Relais 1 |
+| `controls.POWER1` … `POWER8` | `cmnd/{device}/POWER1` … | boolean | Mehrkanal-Relais |
+| `controls.Dimmer` | `cmnd/{device}/Dimmer` | number (0–100 %) | Dimmer |
+| `controls.Color` | `cmnd/{device}/Color` | string | Farbe |
+| `controls.CT` | `cmnd/{device}/CT` | number | Farbtemperatur |
+
+### Status (nur lesbar)
+
+| Datenpunkt | Quell-MQTT-Nachricht | Einheit | Beschreibung |
+|-----------|---------------------|---------|-------------|
+| `status.online` | `tele/LWT` | — | Online / Offline |
+| `status.rssi` | `tele/STATE Wifi.RSSI` | dBm | WLAN-Signalstärke |
+| `status.signal` | `tele/STATE Wifi.Signal` | % | WLAN-Signalqualität |
+| `status.ssid` | `tele/STATE Wifi.SSId` | — | WLAN-Netzwerkname |
+
+### Info (nur lesbar, aus Status-0-Antwort)
+
+| Datenpunkt | Quelle | Beschreibung |
+|-----------|--------|-------------|
+| `info.hostname` | `stat/STATUS5` | Gerätehostname |
+| `info.ip` | `stat/STATUS5` | IP-Adresse |
+| `info.mac` | `stat/STATUS5` | MAC-Adresse |
+| `info.version` | `stat/STATUS2` | Firmware-Version |
+| `info.hardware` | `stat/STATUS2` | Hardware-Typ (z.B. ESP8266EX) |
+| `info.module` | `stat/STATUS` | Tasmota-Modulnummer |
+| `info.friendlyName` | `stat/STATUS` | Freundlicher Name |
+| `info.uptime` | `tele/STATE` | Gerät-Betriebszeit |
+
+### Energie (nur lesbar)
+
+| Datenpunkt | Einheit | Beschreibung |
+|-----------|---------|-------------|
+| `energy.voltage` | V | Netzspannung |
+| `energy.current` | A | Stromstärke |
+| `energy.power` | W | Wirkleistung |
+| `energy.today` | kWh | Energie heute |
+| `energy.yesterday` | kWh | Energie gestern |
+| `energy.total` | kWh | Gesamtenergie |
+
+### Sensoren (nur lesbar, Beispiele)
+
+| Datenpunkt | Einheit | Beschreibung |
+|-----------|---------|-------------|
+| `sensors.{SensorName}_Temperature` | °C | Temperatur |
+| `sensors.{SensorName}_Humidity` | % | Relative Luftfeuchtigkeit |
+| `sensors.{SensorName}_Pressure` | hPa | Luftdruck |
+| `sensors.{SensorName}_CarbonDioxide` | ppm | CO₂ |
+
+---
+
+## 9. Architektur
+
+### Modulübersicht
+
+| Modul | Aufgabe |
+|-------|---------|
+| `main.js` | Adapter-Lebenszyklus, MQTT-Verbindung, Nachrichtenrouting, Datenpunkt-Abonnements |
+| `lib/mapper.js` | Bildet (prefix, command, payload) auf eine Liste von `{path, value, writable}`-Einträgen ab |
+| `lib/datapoints.js` | Typisierte Datenpunkt-Definitionen (Typ, Rolle, Einheit, Lesen/Schreiben) für bekannte Tasmota-Felder |
+
 
 ## 7. Unterstützte Gerätetypen & Datenpunkte
 

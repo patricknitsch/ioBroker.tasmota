@@ -18,7 +18,7 @@ This adapter integrates <strong>Tasmota</strong> smart home devices into ioBroke
 
 It supports two modes of operation: as a built-in **MQTT broker** (server mode) so Tasmota devices connect directly, or as an **MQTT client** connecting to an existing broker such as Mosquitto.
 
-All Tasmota devices are discovered automatically — no manual configuration per device required. As soon as a device publishes its first message, the adapter creates the corresponding ioBroker objects and states dynamically.
+All Tasmota devices are discovered automatically. When a new device is first seen, the adapter creates a **structured ioBroker object tree** and immediately requests full status information (`Status 0`). Every device gets well-typed channels with correct roles and units: `status`, `info`, `energy`, `sensors`, and `controls`. Devices are visible in the **ioBroker Admin Device Manager** — no separate tab required.
 
 ---
 
@@ -54,10 +54,12 @@ All Tasmota devices are discovered automatically — no manual configuration per
 ## 📌 Notes
 
 - Any device running Tasmota firmware is automatically supported
-- States are created on-the-fly when the first MQTT message arrives
+- On first discovery, a `Status 0` command is sent to populate all device info immediately
+- States are organised into structured channels: `status`, `info`, `energy`, `sensors`, `controls`
 - Both `device-first` (`device/tele/STATE`) and `prefix-first` (`tele/device/STATE`) topic formats are supported
 - Multiple MQTT topic prefixes can be configured (comma-separated), e.g. `tasmota,home`
 - The adapter can run as a standalone MQTT broker (no external broker needed)
+- Writable controls (`controls.POWER`, `controls.Dimmer`, …) map directly to `cmnd/…` MQTT topics
 
 ---
 
@@ -67,6 +69,15 @@ All Tasmota devices are discovered automatically — no manual configuration per
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+
+### 0.0.4 (2026-05-11)
+
+- (patricknitsch) Structured ioBroker object tree with status/info/energy/sensors/controls channels
+- (patricknitsch) Auto-discovery: Status 0 request on first sight of new devices
+- (patricknitsch) New lib/mapper.js and lib/datapoints.js modules for typed, unit-aware datapoints
+- (patricknitsch) Device Manager integration (replaces admin/tab.html)
+- (patricknitsch) Backward-compatible cmnd.* write support alongside new controls.*
+- (patricknitsch) Comprehensive unit tests for mapper and datapoints modules
 
 ### 0.0.3 (2026-03-24)
 

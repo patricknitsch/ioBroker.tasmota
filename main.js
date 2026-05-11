@@ -2,6 +2,24 @@
 
 const utils = require('@iobroker/adapter-core');
 const mqtt = require('mqtt');
+const { mapMessage } = require('./lib/mapper');
+const { buildCommon, isPowerKey } = require('./lib/datapoints');
+
+/** Channel objects that are always created for every device. */
+const STANDARD_CHANNELS = {
+	status: 'Status',
+	info: 'Information',
+	controls: 'Controls',
+};
+
+/**
+ * Channel objects created on first data arrival (optional).
+ *
+ */
+const OPTIONAL_CHANNELS = {
+	energy: 'Energy',
+	sensors: 'Sensors',
+};
 
 class Tasmota extends utils.Adapter {
 	/**
@@ -17,16 +35,33 @@ class Tasmota extends utils.Adapter {
 		this.aedesServer = null;
 		this.netServer = null;
 
+		/**
+		 * Set of sanitised device IDs that have been fully initialised.
+		 *
+		 */
+		this.discoveredDevices = new Set();
+
+		/**
+		 * Map of sanitised device ID to original MQTT device topic fragment.
+		 *
+		 */
+		this.deviceTopics = {};
+
+		/**
+		 * Tracks channels that have already been created to avoid repeat calls.
+		 *
+		 */
+		this.createdChannels = new Set();
+
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
+		this.on('message', this.onMessage.bind(this));
 		this.on('unload', this.onUnload.bind(this));
 	}
 
-	/**
-	 * Called when adapter is started.
-	 */
+	// Lifecycle
+
 	async onReady() {
-		// Ensure the info objects exist before setting any state on them
 		await this.setObjectNotExistsAsync('info', {
 			type: 'channel',
 			common: { name: 'Information' },
@@ -46,6 +81,7 @@ class Tasmota extends utils.Adapter {
 		});
 
 		this.setState('info.connection', false, true);
+		await this.loadExistingDevices();
 
 		if (this.config.mode === 'server') {
 			await this.startMqttServer();
@@ -53,17 +89,34 @@ class Tasmota extends utils.Adapter {
 			await this.startMqttClient();
 		}
 
-		// Subscribe to cmnd states so user-initiated commands are published over MQTT
+		// Subscribe to controls (new path) and legacy cmnd path for backward compat
+		await this.subscribeStatesAsync('*.controls.*');
 		await this.subscribeStatesAsync('*.cmnd.*');
 	}
 
 	/**
-	 * Start an MQTT server (broker) using aedes.
+	 * Pre-populate discoveredDevices from the ioBroker object tree so we do not
+	 * trigger auto-discovery for devices that already exist after a restart.
 	 */
+	async loadExistingDevices() {
+		try {
+			const devices = await this.getDevicesAsync();
+			for (const dev of devices) {
+				const shortId = dev._id.split('.').pop() || '';
+				this.discoveredDevices.add(shortId);
+				this.deviceTopics[shortId] = dev.native && dev.native.topic ? String(dev.native.topic) : shortId;
+			}
+			this.log.debug(`Loaded ${this.discoveredDevices.size} existing device(s)`);
+		} catch (e) {
+			this.log.warn(`Could not load existing devices: ${e.message}`);
+		}
+	}
+
+	// MQTT server (broker)
+
 	async startMqttServer() {
 		let Aedes;
 		try {
-			// @ts-expect-error - aedes CJS interop: Aedes is a named export at runtime
 			Aedes = require('aedes').Aedes;
 		} catch {
 			this.log.error('aedes module not found. Please install it: npm install aedes');
@@ -75,7 +128,6 @@ class Tasmota extends utils.Adapter {
 		const tls = require('tls');
 
 		const aedesOpts = {};
-
 		if (this.config.user && this.config.password) {
 			aedesOpts.authenticate = (client, username, password, callback) => {
 				const valid = username === this.config.user && password && password.toString() === this.config.password;
@@ -84,7 +136,6 @@ class Tasmota extends utils.Adapter {
 		}
 
 		this.aedesServer = await Aedes.createBroker(aedesOpts);
-
 		const port = this.config.port || 1883;
 		const bind = this.config.bind || '0.0.0.0';
 
@@ -107,44 +158,33 @@ class Tasmota extends utils.Adapter {
 			this.log.info(`MQTT server listening on ${bind}:${port} (${this.config.serverSsl ? 'MQTTS' : 'MQTT'})`);
 			this.setState('info.connection', true, true);
 		});
-
 		this.netServer.on('error', err => {
 			this.log.error(`MQTT server error: ${err.message}`);
 			this.setState('info.connection', false, true);
 		});
-
 		this.aedesServer.on('publish', async (packet, client) => {
 			if (!client) {
 				return;
-			} // ignore retained/internal messages without a client
+			}
 			if (!packet.topic || packet.topic.startsWith('$SYS')) {
 				return;
 			}
-
 			const topic = packet.topic;
 			const payload = packet.payload ? packet.payload.toString() : '';
-
 			this.log.debug(`MQTT server received: ${topic} = ${payload}`);
 			await this.processMqttMessage(topic, payload);
 		});
-
-		this.aedesServer.on('client', client => {
-			this.log.info(`MQTT client connected: ${client.id}`);
-		});
-
-		this.aedesServer.on('clientDisconnect', client => {
-			this.log.info(`MQTT client disconnected: ${client.id}`);
-		});
-		this.aedesServer.on('clientError', (_client, err) => {
-			this.log.error(`MQTT broker error: ${err.message}`);
-		});
+		this.aedesServer.on('client', client => this.log.info(`MQTT client connected: ${client.id}`));
+		this.aedesServer.on('clientDisconnect', client => this.log.info(`MQTT client disconnected: ${client.id}`));
+		this.aedesServer.on('clientError', (_client, err) => this.log.error(`MQTT broker error: ${err.message}`));
 	}
 
+	// MQTT client
+
 	/**
-	 * Parse the brokerTopicPrefix config value into a list of trimmed, non-empty prefix strings.
-	 * The value may contain multiple prefixes separated by commas.
+	 * Parse brokerTopicPrefix config into a list of trimmed, non-empty prefixes.
 	 *
-	 * @returns {string[]} array of topic prefixes
+	 * @returns {string[]}
 	 */
 	getTopicPrefixes() {
 		return (this.config.brokerTopicPrefix || '')
@@ -153,17 +193,12 @@ class Tasmota extends utils.Adapter {
 			.filter(p => p !== '');
 	}
 
-	/**
-	 * Start an MQTT client connecting to an external broker.
-	 */
 	async startMqttClient() {
 		const fs = require('fs');
-
 		const brokerHost = this.config.brokerUrl || 'localhost';
 		const brokerPort = this.config.brokerPort || 1883;
 		const useTls = this.config.brokerUseTls || false;
 		const protocol = useTls ? 'mqtts' : 'mqtt';
-
 		const url = `${protocol}://${brokerHost}:${brokerPort}`;
 
 		const clientId = this.config.brokerClientId
@@ -201,44 +236,37 @@ class Tasmota extends utils.Adapter {
 		}
 
 		this.log.info(`Connecting to MQTT broker at ${url}`);
-
 		this.mqttClient = mqtt.connect(url, options);
 
 		this.mqttClient.on('connect', () => {
 			this.log.info('Connected to MQTT broker');
 			this.setState('info.connection', true, true);
 
-			// Subscribe to each configured topic prefix, or all topics if none are configured
 			const topicPrefixes = this.getTopicPrefixes();
 			const subscribeTopics = topicPrefixes.length > 0 ? topicPrefixes.map(p => `${p}/#`) : ['#'];
 
 			if (this.mqttClient) {
-				for (const subscribeTopic of subscribeTopics) {
-					this.mqttClient.subscribe(subscribeTopic, { qos: 0 }, err => {
+				for (const sub of subscribeTopics) {
+					this.mqttClient.subscribe(sub, { qos: 0 }, err => {
 						if (err) {
 							this.log.error(`Failed to subscribe: ${err.message}`);
 						} else {
-							this.log.info(`Subscribed to MQTT topics: ${subscribeTopic}`);
+							this.log.info(`Subscribed to MQTT topics: ${sub}`);
 						}
 					});
 				}
 			}
 		});
 
-		this.mqttClient.on('reconnect', () => {
-			this.log.info('Reconnecting to MQTT broker...');
-		});
-
+		this.mqttClient.on('reconnect', () => this.log.info('Reconnecting to MQTT broker...'));
 		this.mqttClient.on('disconnect', () => {
 			this.log.info('Disconnected from MQTT broker');
 			this.setState('info.connection', false, true);
 		});
-
 		this.mqttClient.on('error', err => {
 			this.log.error(`MQTT client error: ${err.message}`);
 			this.setState('info.connection', false, true);
 		});
-
 		this.mqttClient.on('message', async (topic, payload) => {
 			const message = payload ? payload.toString() : '';
 			this.log.debug(`MQTT message: ${topic} = ${message}`);
@@ -246,16 +274,16 @@ class Tasmota extends utils.Adapter {
 		});
 	}
 
+	// Message processing
+
 	/**
-	 * Process an incoming MQTT message and create/update ioBroker states.
-	 * Handles Tasmota FullTopic format: %prefix%/%topic%/...
+	 * Process an incoming MQTT message and create/update structured ioBroker states.
 	 *
-	 * @param {string} topic - MQTT topic
+	 * @param {string} topic   - full MQTT topic
 	 * @param {string} payload - message payload
 	 */
 	async processMqttMessage(topic, payload) {
-		// Strip the first matching broker topic prefix from the front if configured.
-		// Multiple prefixes can be configured separated by commas.
+		// Strip the first matching broker topic prefix
 		const topicPrefixes = this.getTopicPrefixes();
 		let effectiveTopic = topic;
 		for (const topicPrefix of topicPrefixes) {
@@ -265,204 +293,172 @@ class Tasmota extends utils.Adapter {
 			}
 		}
 
-		// Parse topic into parts
 		const parts = effectiveTopic.split('/').filter(p => p !== '');
 		if (parts.length < 2) {
 			return;
 		}
 
-		// Tasmota known prefixes
 		const knownPrefixes = ['tele', 'cmnd', 'stat'];
-		let prefix, deviceId, remainingParts;
-
+		let prefix, deviceTopic, command;
 		const structure = this.config.brokerTopicStructure || 'prefix-first';
 
 		if (structure === 'device-first') {
-			// Format: {device}/{prefix}/{command}  (e.g. office_light/tele/STATE)
-			deviceId = parts[0];
+			// {device}/{prefix}/{command}
+			deviceTopic = parts[0];
 			prefix = knownPrefixes.includes(parts[1]) ? parts[1] : null;
-			remainingParts = prefix ? parts.slice(2) : parts.slice(1);
-		} else if (structure === 'prefix-first') {
-			// Format: {prefix}/{device}/{command}  (e.g. tele/office_light/STATE)
+			command = prefix ? parts.slice(2).join('/') : parts.slice(1).join('/');
+		} else {
+			// prefix-first: {prefix}/{device}/{command}
 			prefix = knownPrefixes.includes(parts[0]) ? parts[0] : null;
-			deviceId = prefix ? parts[1] : parts[0];
-			remainingParts = prefix ? parts.slice(2) : parts.slice(1);
-		} else {
-			// Auto-detect
-			if (knownPrefixes.includes(parts[0])) {
-				prefix = parts[0];
-				deviceId = parts[1];
-				remainingParts = parts.slice(2);
-			} else if (parts.length >= 3 && knownPrefixes.includes(parts[1])) {
-				deviceId = parts[0];
-				prefix = parts[1];
-				remainingParts = parts.slice(2);
-			} else {
-				prefix = null;
-				deviceId = parts[0];
-				remainingParts = parts.slice(1);
-			}
+			deviceTopic = prefix ? parts[1] : parts[0];
+			command = prefix ? parts.slice(2).join('/') : parts.slice(1).join('/');
 		}
 
-		if (!deviceId) {
+		if (!deviceTopic || !prefix || !command) {
 			return;
 		}
 
-		// Sanitize IDs
-		const safeDeviceId = this.sanitizeId(deviceId);
-		const safePrefix = prefix ? this.sanitizeId(prefix) : null;
+		const safeDeviceId = this.sanitizeId(deviceTopic);
 
-		// Build state path: deviceId[.prefix][.remainingParts...]
-		const channelId = safePrefix ? `${safeDeviceId}.${safePrefix}` : safeDeviceId;
-
-		// Ensure device object exists
-		await this.ensureObject(safeDeviceId, 'device', safeDeviceId);
-
-		// Ensure channel object exists (e.g. tasmota1.tele)
-		if (safePrefix) {
-			await this.ensureObject(channelId, 'channel', `${safeDeviceId} ${safePrefix}`);
+		// Auto-discovery: initialise new devices on first sight
+		if (!this.discoveredDevices.has(safeDeviceId)) {
+			this.discoveredDevices.add(safeDeviceId);
+			this.deviceTopics[safeDeviceId] = deviceTopic;
+			await this.initDevice(safeDeviceId, deviceTopic);
+			this.requestDeviceStatus(safeDeviceId);
 		}
 
-		if (remainingParts.length === 0) {
-			// No sub-topic, store the raw payload
-			const stateId = channelId;
-			await this.setStateValue(stateId, payload, topic);
-			return;
-		}
+		// Map MQTT message to structured ioBroker state paths
+		const mapped = mapMessage(prefix, command, payload);
 
-		const commandName = remainingParts.join('_');
-		const safeCommandName = this.sanitizeId(commandName);
-		const baseStateId = `${channelId}.${safeCommandName}`;
-
-		// Try to parse JSON payload
-		let parsed = null;
-		try {
-			parsed = JSON.parse(payload);
-		} catch {
-			// not JSON - store raw value
-		}
-
-		if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-			// JSON object - recurse through its properties
-			await this.processJsonObject(baseStateId, `${channelId}.${safeCommandName}`, parsed, safeCommandName);
-		} else {
-			// Scalar value - store directly
-			await this.ensureObject(
-				baseStateId,
-				'state',
-				safeCommandName,
-				this.guessStateRole(payload),
-				this.guessStateType(payload),
+		if (mapped.length === 0) {
+			// Unknown message type - store as raw fallback
+			const safeCmd = this.sanitizeId(command);
+			await this.ensureChannel(safeDeviceId, 'raw', 'Raw');
+			const rawId = `${safeDeviceId}.raw.${this.sanitizeId(prefix)}_${safeCmd}`;
+			const parsedVal = this.coercePayload(payload);
+			await this.ensureState(
+				rawId,
+				command,
+				{ type: 'string', role: 'text', read: true, write: false },
+				parsedVal,
 			);
-			await this.setStateAsAck(baseStateId, this.parseScalar(payload));
+			return;
 		}
-	}
 
-	/**
-	 * Recursively process a JSON object and create ioBroker states.
-	 *
-	 * @param {string} channelId - channel object ID to create/use
-	 * @param {string} _baseId - unused (kept for API compatibility)
-	 * @param {object} obj - JSON object to process
-	 * @param {string} channelName - human-readable name for the channel
-	 */
-	async processJsonObject(channelId, _baseId, obj, channelName) {
-		await this.ensureObject(channelId, 'channel', channelName);
+		for (const entry of mapped) {
+			const dotPos = entry.path.indexOf('.');
+			const channel = dotPos >= 0 ? entry.path.slice(0, dotPos) : entry.path;
+			const stateKey = dotPos >= 0 ? entry.path.slice(dotPos + 1) : entry.path;
 
-		for (const [key, value] of Object.entries(obj)) {
-			const safeKey = this.sanitizeId(key);
-			const stateId = `${channelId}.${safeKey}`;
-
-			if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-				// Nested object - recurse
-				await this.processJsonObject(stateId, stateId, value, key);
-			} else {
-				// Scalar or array - store as state
-				const strVal = Array.isArray(value) ? JSON.stringify(value) : value;
-				await this.ensureObject(
-					stateId,
-					'state',
-					key,
-					this.guessStateRole(String(strVal)),
-					this.guessStateType(String(strVal)),
-				);
-				// Convert string values (e.g. "ON"→true, "OFF"→false, "42"→42) so the
-				// stored value always matches the declared state type.
-				const convertedVal = typeof strVal === 'string' ? this.parseScalar(strVal) : strVal;
-				await this.setStateAsAck(stateId, convertedVal);
+			// Create optional channels (energy, sensors) on first data arrival
+			if (OPTIONAL_CHANNELS[channel]) {
+				await this.ensureChannel(safeDeviceId, channel, OPTIONAL_CHANNELS[channel]);
 			}
+
+			const stateId = `${safeDeviceId}.${channel}.${this.sanitizeId(stateKey)}`;
+			const common = buildCommon(stateKey, entry.value, entry.writable);
+			await this.ensureState(stateId, stateKey, common, entry.value);
 		}
 	}
 
+	// Device initialisation
+
 	/**
-	 * Ensure an ioBroker object exists; create it with setObjectNotExists if not.
+	 * Create the device object and its standard channels in ioBroker.
 	 *
-	 * @param {string} id - object ID (relative to adapter namespace)
-	 * @param {"state" | "channel" | "device"} type - object type
-	 * @param {string} name - human-readable name
-	 * @param {string} [role] - state role
-	 * @param {ioBroker.CommonType} [stateType] - state type
+	 * @param {string} safeDeviceId   - sanitised device ID
+	 * @param {string} originalTopic  - original MQTT topic fragment
 	 */
-	async ensureObject(id, type, name, role, stateType) {
-		if (type === 'state') {
-			await this.setObjectNotExistsAsync(id, {
-				type: 'state',
-				common: {
-					name,
-					role: role || 'value',
-					type: stateType || 'mixed',
-					read: true,
-					write: true,
-				},
-				native: {},
-			});
-		} else if (type === 'device') {
-			await this.setObjectNotExistsAsync(id, {
-				type: 'device',
-				common: { name },
-				native: {},
-			});
-		} else {
-			await this.setObjectNotExistsAsync(id, {
-				type: 'channel',
-				common: { name },
-				native: {},
-			});
+	async initDevice(safeDeviceId, originalTopic) {
+		this.log.info(`New Tasmota device discovered: ${originalTopic}`);
+
+		await this.setObjectNotExistsAsync(safeDeviceId, {
+			type: 'device',
+			common: { name: originalTopic },
+			native: { topic: originalTopic },
+		});
+
+		for (const [channel, name] of Object.entries(STANDARD_CHANNELS)) {
+			await this.ensureChannel(safeDeviceId, channel, name);
 		}
+
+		// Pre-create status.online so it exists even before the first LWT arrives
+		const onlineId = `${safeDeviceId}.status.online`;
+		await this.ensureState(
+			onlineId,
+			'online',
+			{ name: 'Connected', type: 'boolean', role: 'indicator.connected', read: true, write: false },
+			false,
+		);
 	}
 
 	/**
-	 * Set a state value with ack=true.
+	 * Publish a "Status 0" command so the device responds with all status info,
+	 * allowing us to populate the info channels immediately after discovery.
 	 *
-	 * @param {string} id - state ID
-	 * @param {unknown} value - value to set
+	 * @param {string} safeDeviceId - sanitised device ID
 	 */
-	async setStateAsAck(id, value) {
-		// @ts-expect-error - value is unknown at the call site but ioBroker accepts any JSON-safe value
-		await this.setStateAsync(id, { val: value, ack: true });
+	requestDeviceStatus(safeDeviceId) {
+		const originalTopic = this.deviceTopics[safeDeviceId] || safeDeviceId;
+		const structure = this.config.brokerTopicStructure || 'prefix-first';
+		let cmdTopic = structure === 'device-first' ? `${originalTopic}/cmnd/Status` : `cmnd/${originalTopic}/Status`;
+
+		const prefixes = this.getTopicPrefixes();
+		if (prefixes.length > 0) {
+			cmdTopic = `${prefixes[0]}/${cmdTopic}`;
+		}
+
+		this.publishMqtt(cmdTopic, '0');
+	}
+
+	// Object helpers
+
+	/**
+	 * Ensure a channel object exists within a device.
+	 * Uses an in-memory cache to avoid repeated setObjectNotExists calls.
+	 *
+	 * @param {string} deviceId - sanitised device ID
+	 * @param {string} channel  - channel name (e.g. "status")
+	 * @param {string} name     - human-readable channel name
+	 */
+	async ensureChannel(deviceId, channel, name) {
+		const id = `${deviceId}.${channel}`;
+		if (this.createdChannels.has(id)) {
+			return;
+		}
+		this.createdChannels.add(id);
+		await this.setObjectNotExistsAsync(id, {
+			type: 'channel',
+			common: { name },
+			native: {},
+		});
 	}
 
 	/**
-	 * Set raw string as a state (used for non-JSON topics).
+	 * Ensure a state object exists and update its value.
 	 *
-	 * @param {string} stateId - state ID
-	 * @param {string} payload - raw payload
-	 * @param {string} _topic - original MQTT topic (unused, kept for API compatibility)
+	 * @param {string}  id     - full relative state ID
+	 * @param {string}  name   - human-readable name
+	 * @param {object}  common - ioBroker common block
+	 * @param {unknown} value  - current value
 	 */
-	async setStateValue(stateId, payload, _topic) {
-		const parsed = this.parseScalar(payload);
-		const role = this.guessStateRole(payload);
-		const type = this.guessStateType(payload);
-		await this.ensureObject(stateId, 'state', stateId.split('.').pop() || stateId, role, type);
-		await this.setStateAsAck(stateId, parsed);
+	async ensureState(id, name, common, value) {
+		await this.setObjectNotExistsAsync(id, {
+			type: 'state',
+			common: { name, ...common },
+			native: {},
+		});
+		await this.setStateAsync(id, { val: /** @type {ioBroker.StateValue} */ (value), ack: true });
 	}
+
+	// Sanitization / coercion
 
 	/**
 	 * Sanitize a string for use as an ioBroker object ID.
-	 * Only A-Za-z0-9-_ are allowed; everything else is replaced with underscore.
 	 *
-	 * @param {string} input - string to sanitize
-	 * @returns {string} sanitized string
+	 * @param {string} input
+	 * @returns {string}
 	 */
 	sanitizeId(input) {
 		return input.replace(/[^A-Za-z0-9\-_]/g, '_');
@@ -471,137 +467,32 @@ class Tasmota extends utils.Adapter {
 	/**
 	 * Parse a string payload to its best-matching JavaScript type.
 	 *
-	 * @param {string} payload - raw string payload
-	 * @returns {boolean | number | string} parsed value
+	 * @param {string} payload
+	 * @returns {boolean | number | string}
 	 */
-	parseScalar(payload) {
-		if (payload === 'true' || payload === 'ON') {
+	coercePayload(payload) {
+		if (payload === 'ON' || payload === 'true') {
 			return true;
 		}
-		if (payload === 'false' || payload === 'OFF') {
+		if (payload === 'OFF' || payload === 'false') {
 			return false;
 		}
-		const num = Number(payload);
-		if (!isNaN(num) && payload.trim() !== '') {
-			return num;
+		const n = Number(payload);
+		if (!isNaN(n) && payload.trim() !== '') {
+			return n;
 		}
 		return payload;
 	}
 
-	/**
-	 * Guess the ioBroker state role from the value alone (no key-name heuristics).
-	 * This keeps the adapter generic so it does not need updating when the MQTT
-	 * structure changes.
-	 *
-	 * @param {string} value - string value
-	 * @returns {string} ioBroker state role
-	 */
-	guessStateRole(value) {
-		if (value === 'ON' || value === 'OFF' || value === 'true' || value === 'false') {
-			return 'indicator';
-		}
-		if (!isNaN(Number(value)) && value.trim() !== '') {
-			return 'value';
-		}
-		return 'text';
-	}
+	// MQTT publish
 
 	/**
-	 * Guess the ioBroker state type from a string value.
+	 * Publish a value to an MQTT topic via the active client or server.
 	 *
-	 * @param {string} value - string value to inspect
-	 * @returns {ioBroker.CommonType} ioBroker state type
+	 * @param {string} topic
+	 * @param {string} value
 	 */
-	guessStateType(value) {
-		if (value === 'true' || value === 'false' || value === 'ON' || value === 'OFF') {
-			return 'boolean';
-		}
-		if (!isNaN(Number(value)) && value.trim() !== '') {
-			return 'number';
-		}
-		return 'string';
-	}
-
-	/**
-	 * Is called when adapter shuts down - callback has to be called under any circumstances!
-	 *
-	 * @param {() => void} callback - must be called when cleanup is done
-	 */
-	onUnload(callback) {
-		try {
-			if (this.mqttClient) {
-				this.mqttClient.end(true);
-				this.mqttClient = null;
-				this.log.info('MQTT client disconnected');
-			}
-			if (this.aedesServer) {
-				this.aedesServer.close(() => {
-					this.log.info('MQTT server stopped');
-				});
-				this.aedesServer = null;
-			}
-			if (this.netServer) {
-				this.netServer.close();
-				this.netServer = null;
-			}
-			this.setState('info.connection', false, true);
-			callback();
-		} catch {
-			callback();
-		}
-	}
-
-	/**
-	 * Is called if a subscribed state changes.
-	 *
-	 * @param {string} id - state ID
-	 * @param {ioBroker.State | null | undefined} state - new state value
-	 */
-	onStateChange(id, state) {
-		if (!state || state.ack) {
-			return;
-		}
-
-		// A state was changed from outside (command from user)
-		// Only handle cmnd states – stat and tele come from the device and must not be echoed back
-		const relativeId = id.replace(`${this.namespace}.`, '');
-		const parts = relativeId.split('.');
-
-		if (parts.length < 3 || parts[1] !== 'cmnd') {
-			return;
-		}
-
-		// Reconstruct a Tasmota command topic from the state ID
-		const device = parts[0];
-		const prefix = 'cmnd';
-		const command = parts.slice(2).join('/');
-
-		const structure = this.config.brokerTopicStructure || 'prefix-first';
-		let topic;
-		if (structure === 'device-first') {
-			// Format: {device}/cmnd/{command}
-			topic = `${device}/${prefix}/${command}`;
-		} else {
-			// Format: cmnd/{device}/{command}
-			topic = `${prefix}/${device}/${command}`;
-		}
-
-		// Prepend first broker topic prefix if configured
-		const topicPrefixes = this.getTopicPrefixes();
-		if (topicPrefixes.length > 0) {
-			topic = `${topicPrefixes[0]}/${topic}`;
-		}
-
-		// Convert value for Tasmota commands: boolean true/false → ON/OFF
-		let value;
-		if (state.val === true) {
-			value = 'ON';
-		} else if (state.val === false) {
-			value = 'OFF';
-		} else {
-			value = state.val !== null && state.val !== undefined ? String(state.val) : '';
-		}
-
+	publishMqtt(topic, value) {
 		if (this.mqttClient && this.mqttClient.connected) {
 			this.mqttClient.publish(topic, value, { qos: 0 }, err => {
 				if (err) {
@@ -630,16 +521,216 @@ class Tasmota extends utils.Adapter {
 			);
 		}
 	}
+
+	// State change handler
+
+	/**
+	 * Called when a subscribed ioBroker state changes (user-initiated command).
+	 *
+	 * @param {string}                           id    - state ID
+	 * @param {ioBroker.State | null | undefined} state - new state value
+	 */
+	onStateChange(id, state) {
+		if (!state || state.ack) {
+			return;
+		}
+
+		const relativeId = id.replace(`${this.namespace}.`, '');
+		const parts = relativeId.split('.');
+		if (parts.length < 3) {
+			return;
+		}
+
+		const deviceId = parts[0];
+		const channel = parts[1];
+
+		// Only react to controls and legacy cmnd channels
+		if (channel !== 'controls' && channel !== 'cmnd') {
+			return;
+		}
+
+		const command = parts.slice(2).join('/');
+		const originalTopic = this.deviceTopics[deviceId] || deviceId;
+		const structure = this.config.brokerTopicStructure || 'prefix-first';
+
+		let topic =
+			structure === 'device-first' ? `${originalTopic}/cmnd/${command}` : `cmnd/${originalTopic}/${command}`;
+
+		const prefixes = this.getTopicPrefixes();
+		if (prefixes.length > 0) {
+			topic = `${prefixes[0]}/${topic}`;
+		}
+
+		// Convert boolean to ON/OFF for Tasmota
+		let value;
+		if (state.val === true) {
+			value = 'ON';
+		} else if (state.val === false) {
+			value = 'OFF';
+		} else {
+			value = state.val !== null && state.val !== undefined ? String(state.val) : '';
+		}
+
+		this.publishMqtt(topic, value);
+	}
+
+	// Device Manager message handler
+
+	/**
+	 * Handle sendTo messages (e.g. from ioBroker admin Device Manager).
+	 *
+	 * @param {ioBroker.Message} msg
+	 */
+	async onMessage(msg) {
+		if (!msg) {
+			return;
+		}
+
+		if (msg.command === 'dm:listDevices') {
+			const devices = Object.entries(this.deviceTopics).map(([id, topic]) => ({
+				id,
+				name: topic,
+				native: { topic },
+			}));
+			this.sendTo(msg.from, msg.command, { result: devices }, msg.callback);
+			return;
+		}
+
+		if (msg.command === 'dm:deviceDetails' && msg.message) {
+			const deviceId = String(msg.message.id || msg.message);
+			const topic = this.deviceTopics[deviceId] || deviceId;
+			this.sendTo(
+				msg.from,
+				msg.command,
+				{ result: { id: deviceId, name: topic, native: { topic } } },
+				msg.callback,
+			);
+			return;
+		}
+
+		if (msg.command === 'dm:controlDevice' && msg.message) {
+			const deviceId = String(msg.message.deviceId || '');
+			const command = String(msg.message.command || '');
+			const value = msg.message.value !== undefined ? String(msg.message.value) : '';
+
+			if (deviceId && command) {
+				const originalTopic = this.deviceTopics[deviceId] || deviceId;
+				const structure = this.config.brokerTopicStructure || 'prefix-first';
+				let topic =
+					structure === 'device-first'
+						? `${originalTopic}/cmnd/${command}`
+						: `cmnd/${originalTopic}/${command}`;
+				const prefixes = this.getTopicPrefixes();
+				if (prefixes.length > 0) {
+					topic = `${prefixes[0]}/${topic}`;
+				}
+				this.publishMqtt(topic, value);
+			}
+			this.sendTo(msg.from, msg.command, { result: 'ok' }, msg.callback);
+			return;
+		}
+	}
+
+	// Shutdown
+
+	/**
+	 * Called when adapter shuts down - callback must be called under any circumstances.
+	 *
+	 * @param {() => void} callback
+	 */
+	onUnload(callback) {
+		try {
+			if (this.mqttClient) {
+				this.mqttClient.end(true);
+				this.mqttClient = null;
+				this.log.info('MQTT client disconnected');
+			}
+			if (this.aedesServer) {
+				this.aedesServer.close(() => this.log.info('MQTT server stopped'));
+				this.aedesServer = null;
+			}
+			if (this.netServer) {
+				this.netServer.close();
+				this.netServer = null;
+			}
+			this.setState('info.connection', false, true);
+			callback();
+		} catch {
+			callback();
+		}
+	}
+
+	// Legacy helpers kept so existing unit tests continue to pass
+
+	/**
+	 * Parse a string payload to its best-matching JavaScript type.
+	 *
+	 * @param {string} payload
+	 * @returns {boolean | number | string}
+	 */
+	parseScalar(payload) {
+		return this.coercePayload(payload);
+	}
+
+	/**
+	 * Guess the ioBroker state type from a string value.
+	 *
+	 * @param {string} value
+	 * @returns {string}
+	 */
+	guessStateType(value) {
+		if (value === 'true' || value === 'false' || value === 'ON' || value === 'OFF') {
+			return 'boolean';
+		}
+		if (!isNaN(Number(value)) && value.trim() !== '') {
+			return 'number';
+		}
+		return 'string';
+	}
+
+	/**
+	 * Recursively process a JSON object and create ioBroker states.
+	 * Kept for backward-compat with existing unit tests; new code uses the mapper.
+	 *
+	 * @param {string} channelId
+	 * @param {string} _baseId
+	 * @param {object} obj
+	 * @param {string} channelName
+	 */
+	async processJsonObject(channelId, _baseId, obj, channelName) {
+		await this.setObjectNotExistsAsync(channelId, {
+			type: 'channel',
+			common: { name: channelName },
+			native: {},
+		});
+
+		for (const [key, value] of Object.entries(obj)) {
+			const safeKey = this.sanitizeId(key);
+			const stateId = `${channelId}.${safeKey}`;
+
+			if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+				await this.processJsonObject(stateId, stateId, value, key);
+			} else {
+				const strVal = Array.isArray(value) ? JSON.stringify(value) : value;
+				const common = buildCommon(key, strVal, isPowerKey(key));
+				await this.setObjectNotExistsAsync(stateId, {
+					type: 'state',
+					common: { name: key, ...common },
+					native: {},
+				});
+				const convertedVal = typeof strVal === 'string' ? this.parseScalar(strVal) : strVal;
+				await this.setStateAsync(stateId, { val: convertedVal, ack: true });
+			}
+		}
+	}
 }
 
 if (require.main !== module) {
-	// Export the constructor in compact mode
 	/**
-	 * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
+	 * @param {Partial<utils.AdapterOptions>} [options]
 	 */
 	module.exports = options => new Tasmota(options);
 	module.exports.Tasmota = Tasmota;
 } else {
-	// otherwise start the instance directly
 	new Tasmota();
 }

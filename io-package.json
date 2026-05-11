@@ -1,8 +1,12 @@
 {
 	"common": {
 		"name": "tasmota",
-		"version": "0.0.3",
+		"version": "0.0.4",
 		"news": {
+			"0.0.4": {
+				"en": "Structured ioBroker object tree (status/info/energy/sensors/controls channels)\nAuto-discovery with Status 0 request on new devices\nDevice Manager integration (removes tab.html)\nMapper module for typed, unit-aware Tasmota datapoints",
+				"de": "Strukturierter ioBroker-Objektbaum (status/info/energy/sensors/controls Kanäle)\nAuto-Discovery mit Status 0 Anfrage bei neuen Geräten\nDevice Manager Integration (entfernt tab.html)\nMapper-Modul für typisierte Tasmota-Datenpunkte mit Einheiten"
+			},
 			"0.0.3": {
 				"en": "Add support for multiple comma-separated topic prefixes\nAdd separate English and German documentation in docs/",
 				"de": "Unterstützung für mehrere durch Komma getrennte Topic-Präfixe hinzugefügt\nSeparate englische und deutsche Dokumentation in docs/ hinzugefügt",
@@ -88,15 +92,7 @@
 		"connectionType": "local",
 		"dataSource": "push",
 		"adminUI": {
-			"config": "json",
-			"tab": "html"
-		},
-		"adminTab": {
-			"singleton": false,
-			"name": {
-				"en": "Device Overview",
-				"de": "Geräteübersicht"
-			}
+			"config": "json"
 		},
 		"dependencies": [
 			{
