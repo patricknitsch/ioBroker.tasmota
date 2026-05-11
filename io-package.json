@@ -92,8 +92,7 @@
 		"connectionType": "local",
 		"dataSource": "push",
 		"adminUI": {
-			"config": "json",
-			"tab": "tab.html"
+			"config": "json"
 		},
 		"dependencies": [
 			{
