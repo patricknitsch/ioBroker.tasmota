@@ -4,8 +4,10 @@ const { expect } = require('chai');
 
 const adapterCorePath = require.resolve('@iobroker/adapter-core');
 if (!require.cache[adapterCorePath] || !require.cache[adapterCorePath].exports.Adapter) {
-const cache = require.cache;
-cache[adapterCorePath] = {
+	const cache = require.cache;
+	/** @type {any} */
+	const cacheAny = cache;
+	cacheAny[adapterCorePath] = {
 id: adapterCorePath,
 filename: adapterCorePath,
 loaded: true,
