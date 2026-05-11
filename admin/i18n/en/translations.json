@@ -29,5 +29,11 @@
 	"topicPrefixHelp": "One or more MQTT topic prefixes, separated by commas (e.g. tasmota,home)",
 	"topicStructure": "Topic Structure",
 	"topicDeviceFirst": "Device First (device/prefix/topic)",
-	"topicPrefixFirst": "Prefix First (prefix/device/topic)"
+	"topicPrefixFirst": "Prefix First (prefix/device/topic)",
+	"pageConnection": "Connection",
+	"pageTopics": "Topics",
+	"pageMaintenance": "Maintenance",
+	"maintenanceSettings": "Maintenance Settings",
+	"clearFolders": "Clean all device folders on adapter start",
+	"clearFoldersHelp": "Removes all discovered device channels/states on next adapter start and rebuilds them automatically."
 }

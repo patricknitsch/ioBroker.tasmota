@@ -29,5 +29,11 @@
 	"topicPrefixHelp": "Uno o più prefissi di argomenti MQTT, separati da virgole (es. tasmota,home)",
 	"topicStructure": "Struttura dell'argomento",
 	"topicDeviceFirst": "Dispositivo prima (dispositivo/prefisso/argomento)",
-	"topicPrefixFirst": "Prefisso prima (prefisso/dispositivo/argomento)"
+	"topicPrefixFirst": "Prefisso prima (prefisso/dispositivo/argomento)",
+	"pageConnection": "Connection",
+	"pageTopics": "Topics",
+	"pageMaintenance": "Maintenance",
+	"maintenanceSettings": "Maintenance Settings",
+	"clearFolders": "Clean all device folders on adapter start",
+	"clearFoldersHelp": "Removes all discovered device channels/states on next adapter start and rebuilds them automatically."
 }

@@ -29,5 +29,11 @@
 	"topicPrefixHelp": "Ein oder mehrere MQTT-Topic-Präfixe, durch Komma getrennt (z.B. tasmota,home)",
 	"topicStructure": "Topic-Struktur",
 	"topicDeviceFirst": "Gerät zuerst (Gerät/Präfix/Thema)",
-	"topicPrefixFirst": "Präfix zuerst (Präfix/Gerät/Thema)"
+	"topicPrefixFirst": "Präfix zuerst (Präfix/Gerät/Thema)",
+	"pageConnection": "Verbindung",
+	"pageTopics": "Topics",
+	"pageMaintenance": "Wartung",
+	"maintenanceSettings": "Wartungseinstellungen",
+	"clearFolders": "Alle Geräteordner beim Adapterstart bereinigen",
+	"clearFoldersHelp": "Löscht beim nächsten Adapterstart alle erkannten Gerätekanäle/-datenpunkte und baut sie automatisch neu auf."
 }
