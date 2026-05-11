@@ -451,12 +451,12 @@ class Tasmota extends utils.Adapter {
 		if (this.createdChannels.has(id)) {
 			return;
 		}
-		this.createdChannels.add(id);
 		await this.setObjectNotExistsAsync(id, {
 			type: 'channel',
 			common: { name },
 			native: {},
 		});
+		this.createdChannels.add(id);
 	}
 
 	/**
