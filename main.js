@@ -134,7 +134,13 @@ class Tasmota extends utils.Adapter {
 		});
 
 		this.aedesServer.on('publish', async (packet, client) => {
-			if (!client || !packet.topic || packet.topic.startsWith('$SYS')) {
+			if (!client) {
+				return;
+			}
+			if (!packet.topic) {
+				return;
+			}
+			if (packet.topic.startsWith('$SYS')) {
 				return;
 			}
 			await this.processMqttMessage(packet.topic, packet.payload ? packet.payload.toString() : '');
@@ -424,8 +430,22 @@ class Tasmota extends utils.Adapter {
 		const deviceId = parts[0];
 		const object = await this.getObjectAsync(relativeId);
 		const command = object?.native?.tasmota?.command || parts[parts.length - 1];
-		const payload = state.val === true ? 'ON' : state.val === false ? 'OFF' : String(state.val ?? '');
+		const payload = this.toCommandPayload(state.val);
 		await this.publishCommand(deviceId, command, payload);
+	}
+
+	/**
+	 * @param {ioBroker.StateValue | null | undefined} value
+	 * @returns {string}
+	 */
+	toCommandPayload(value) {
+		if (value === true) {
+			return 'ON';
+		}
+		if (value === false) {
+			return 'OFF';
+		}
+		return String(value ?? '');
 	}
 
 	async publishCommand(deviceId, command, payload) {

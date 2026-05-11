@@ -35,7 +35,7 @@ The JSON config is split into tabs:
 3. **Maintenance**
    - checkbox to clean all discovered device folders on next start
 
-If required client config (broker host/topic prefix) is missing, adapter start is aborted with one-time log message: `Konfiguration fehlt.`
+If required client config (broker host/topic prefix) is missing, adapter start is aborted with the one-time log message `Konfiguration fehlt.` (required wording from specification).
 
 ## MQTT topic structures
 

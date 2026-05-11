@@ -29,11 +29,5 @@
 	"topicPrefixHelp": "Een of meer MQTT-onderwerpvoorvoegsels, gescheiden door komma's (bijv. tasmota,home)",
 	"topicStructure": "Onderwerpstructuur",
 	"topicDeviceFirst": "Apparaat eerst (apparaat/voorvoegsel/onderwerp)",
-	"topicPrefixFirst": "Voorvoegsel eerst (voorvoegsel/apparaat/onderwerp)",
-	"pageConnection": "Connection",
-	"pageTopics": "Topics",
-	"pageMaintenance": "Maintenance",
-	"maintenanceSettings": "Maintenance Settings",
-	"clearFolders": "Clean all device folders on adapter start",
-	"clearFoldersHelp": "Removes all discovered device channels/states on next adapter start and rebuilds them automatically."
+	"topicPrefixFirst": "Voorvoegsel eerst (voorvoegsel/apparaat/onderwerp)"
 }

@@ -29,11 +29,5 @@
 	"topicPrefixHelp": "Один или несколько префиксов MQTT-топиков, разделённых запятыми (например, tasmota,home)",
 	"topicStructure": "Структура топика",
 	"topicDeviceFirst": "Устройство первым (устройство/префикс/топик)",
-	"topicPrefixFirst": "Префикс первым (префикс/устройство/топик)",
-	"pageConnection": "Connection",
-	"pageTopics": "Topics",
-	"pageMaintenance": "Maintenance",
-	"maintenanceSettings": "Maintenance Settings",
-	"clearFolders": "Clean all device folders on adapter start",
-	"clearFoldersHelp": "Removes all discovered device channels/states on next adapter start and rebuilds them automatically."
+	"topicPrefixFirst": "Префикс первым (префикс/устройство/топик)"
 }
