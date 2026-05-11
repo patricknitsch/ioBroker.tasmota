@@ -95,16 +95,40 @@ class Tasmota extends utils.Adapter {
 	}
 
 	/**
+	 * Ensures the standard channel structure exists for an already known device.
+	 *
+	 * @param {string} shortId - Sanitised device ID
+	 */
+	async ensureStandardChannelsForDevice(shortId) {
+		for (const [channelId, channelName] of Object.entries(STANDARD_CHANNELS)) {
+			const fullChannelId = `${shortId}.${channelId}`;
+			await this.setObjectNotExistsAsync(fullChannelId, {
+				type: 'channel',
+				common: { name: channelName },
+				native: {},
+			});
+			this.createdChannels.add(fullChannelId);
+		}
+	}
+
+	/**
 	 * Pre-populate discoveredDevices from the ioBroker object tree so we do not
 	 * trigger auto-discovery for devices that already exist after a restart.
+	 *
+	 * Also migrates older devices by ensuring the current standard channels
+	 * exist before the devices are treated as fully discovered.
 	 */
 	async loadExistingDevices() {
 		try {
 			const devices = await this.getDevicesAsync();
 			for (const dev of devices) {
 				const shortId = dev._id.split('.').pop() || '';
+				const topic = dev.native && dev.native.topic ? String(dev.native.topic) : shortId;
+
+				await this.ensureStandardChannelsForDevice(shortId);
+
+				this.deviceTopics[shortId] = topic;
 				this.discoveredDevices.add(shortId);
-				this.deviceTopics[shortId] = dev.native && dev.native.topic ? String(dev.native.topic) : shortId;
 			}
 			this.log.debug(`Loaded ${this.discoveredDevices.size} existing device(s)`);
 		} catch (e) {
