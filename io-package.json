@@ -157,6 +157,20 @@
 				"def": false
 			},
 			"native": {}
+		},
+		{
+			"_id": "info.deviceManager",
+			"type": "state",
+			"common": {
+				"expert": true,
+				"name": "Communication with GUI for device manager",
+				"type": "string",
+				"role": "state",
+				"def": "",
+				"read": true,
+				"write": false
+			},
+			"native": {}
 		}
 	]
 }

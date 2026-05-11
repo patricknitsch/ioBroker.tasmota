@@ -102,8 +102,8 @@ class Tasmota extends utils.Adapter {
 		 */
 		this.createdChannels = new Set();
 
-		/** @type {TasmotaDeviceManagement} */
-		this.deviceManager = new TasmotaDeviceManagement(this);
+		/** @type {TasmotaDeviceManagement | null} */
+		this.deviceManager = null;
 
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
@@ -114,6 +114,10 @@ class Tasmota extends utils.Adapter {
 	// Lifecycle
 
 	async onReady() {
+		// Initialise Device Manager now that the adapter is connected to ioBroker,
+		// so ensureCommunicationState() can create the info.deviceManager state.
+		this.deviceManager = new TasmotaDeviceManagement(this);
+
 		await this.setObjectNotExistsAsync('info', {
 			type: 'channel',
 			common: { name: 'Information' },
