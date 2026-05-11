@@ -29,6 +29,8 @@ function makeStub() {
 describe('Tasmota helper methods', () => {
 	const adapter = makeStub();
 
+	adapter.config = {};
+
 	describe('parseScalar', () => {
 		it('converts ON/ONLINE to boolean true', () => {
 			expect(adapter.parseScalar('ON')).to.equal(true);
@@ -58,6 +60,54 @@ describe('Tasmota helper methods', () => {
 
 		it('returns string for plain text', () => {
 			expect(adapter.guessStateType('hello')).to.equal('string');
+		});
+	});
+
+	describe('getConfigurationErrors', () => {
+		it('returns errors when required client fields are missing', () => {
+			adapter.config = {
+				mode: 'client',
+				brokerUrl: '',
+				brokerPort: 0,
+				brokerTopicPrefix: '',
+				brokerUseTls: false,
+				brokerUser: '',
+				brokerPassword: '',
+			};
+			const errors = adapter.getConfigurationErrors();
+			expect(errors).to.include('Broker Host fehlt.');
+			expect(errors).to.include('Broker Port ist ungültig.');
+			expect(errors).to.include('Topic-Präfix fehlt.');
+		});
+
+		it('returns no errors for complete basic client config', () => {
+			adapter.config = {
+				mode: 'client',
+				brokerUrl: 'localhost',
+				brokerPort: 1883,
+				brokerTopicPrefix: 'tasmota',
+				brokerUseTls: false,
+				brokerUser: '',
+				brokerPassword: '',
+			};
+			expect(adapter.getConfigurationErrors()).to.deep.equal([]);
+		});
+
+		it('validates username/password and tls keypair completeness', () => {
+			adapter.config = {
+				mode: 'client',
+				brokerUrl: 'localhost',
+				brokerPort: 1883,
+				brokerTopicPrefix: 'tasmota',
+				brokerUseTls: true,
+				brokerUser: 'user',
+				brokerPassword: '',
+				brokerCertPath: '/tmp/cert.pem',
+				brokerKeyPath: '',
+			};
+			const errors = adapter.getConfigurationErrors();
+			expect(errors).to.include('Broker Benutzername und Passwort müssen gemeinsam gesetzt werden.');
+			expect(errors).to.include('TLS-Zertifikat und TLS-Schlüssel müssen gemeinsam gesetzt werden.');
 		});
 	});
 });

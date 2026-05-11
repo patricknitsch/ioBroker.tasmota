@@ -52,11 +52,16 @@ class Tasmota extends utils.Adapter {
 		});
 		await this.setStateAsync('info.connection', { val: false, ack: true });
 
-		if (this.isConfigMissing()) {
+		const configurationErrors = this.getConfigurationErrors();
+		if (configurationErrors.length > 0) {
 			if (!this.configMissingLogged) {
 				this.configMissingLogged = true;
 				this.log.error('Konfiguration fehlt.');
+				for (const errorMessage of configurationErrors) {
+					this.log.error(errorMessage);
+				}
 			}
+			this.terminate?.('Konfiguration fehlt.');
 			return;
 		}
 
@@ -73,13 +78,42 @@ class Tasmota extends utils.Adapter {
 		await this.subscribeStatesAsync('*.controls.*');
 	}
 
-	isConfigMissing() {
+	getConfigurationErrors() {
+		const errors = [];
 		if (this.config.mode !== 'client') {
-			return false;
+			return errors;
 		}
+
 		const hostMissing = !String(this.config.brokerUrl || '').trim();
+		if (hostMissing) {
+			errors.push('Broker Host fehlt.');
+		}
+
+		const portNumber = Number(this.config.brokerPort);
+		if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
+			errors.push('Broker Port ist ungültig.');
+		}
+
 		const prefixMissing = !String(this.config.brokerTopicPrefix || '').trim();
-		return hostMissing || prefixMissing;
+		if (prefixMissing) {
+			errors.push('Topic-Präfix fehlt.');
+		}
+
+		const userSet = !!String(this.config.brokerUser || '').trim();
+		const passwordSet = !!String(this.config.brokerPassword || '').trim();
+		if (userSet !== passwordSet) {
+			errors.push('Broker Benutzername und Passwort müssen gemeinsam gesetzt werden.');
+		}
+
+		if (this.config.brokerUseTls) {
+			const certSet = !!String(this.config.brokerCertPath || '').trim();
+			const keySet = !!String(this.config.brokerKeyPath || '').trim();
+			if (certSet !== keySet) {
+				errors.push('TLS-Zertifikat und TLS-Schlüssel müssen gemeinsam gesetzt werden.');
+			}
+		}
+
+		return errors;
 	}
 
 	async startMqttServer() {
