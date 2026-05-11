@@ -50,7 +50,7 @@ describe('lib/datapoints', () => {
 		it('returns voltage definition', () => {
 			const dp = getDatapoint('Voltage');
 			expect(dp).to.exist;
-			expect(dp.channel).to.equal('sensors');
+			expect(dp.channel).to.equal('energy');
 			expect(dp.unit).to.equal('V');
 			expect(dp.role).to.equal('value.voltage');
 			expect(dp.write).to.equal(false);
@@ -222,24 +222,24 @@ describe('lib/mapper — mapMessage', () => {
 			results = mapMessage('tele', 'ENERGY', ENERGY_JSON);
 		});
 
-		it('maps Voltage to sensors.voltage', () => {
-			const e = results.find(r => r.path === 'sensors.voltage');
+		it('maps Voltage to energy.voltage', () => {
+			const e = results.find(r => r.path === 'energy.voltage');
 			expect(e).to.exist;
 			expect(e.value).to.equal(231);
 			expect(e.writable).to.equal(false);
 		});
-		it('maps Power to sensors.power', () => {
-			const e = results.find(r => r.path === 'sensors.power');
+		it('maps Power to energy.power', () => {
+			const e = results.find(r => r.path === 'energy.power');
 			expect(e).to.exist;
 			expect(e.value).to.equal(65);
 		});
-		it('maps Total to sensors.total', () => {
-			const e = results.find(r => r.path === 'sensors.total');
+		it('maps Total to energy.total', () => {
+			const e = results.find(r => r.path === 'energy.total');
 			expect(e).to.exist;
 			expect(e.value).to.equal(0.217);
 		});
-		it('maps Factor to sensors.factor', () => {
-			const e = results.find(r => r.path === 'sensors.factor');
+		it('maps Factor to energy.factor', () => {
+			const e = results.find(r => r.path === 'energy.factor');
 			expect(e).to.exist;
 			expect(e.value).to.equal(0.97);
 		});
@@ -357,8 +357,8 @@ describe('lib/mapper — mapMessage', () => {
 			results = mapMessage('stat', 'STATUS8', STATUS8_JSON);
 		});
 
-		it('maps ENERGY.Voltage to sensors.voltage', () => {
-			const e = results.find(r => r.path === 'sensors.voltage');
+		it('maps ENERGY.Voltage to energy.voltage', () => {
+			const e = results.find(r => r.path === 'energy.voltage');
 			expect(e).to.exist;
 			expect(e.value).to.equal(230);
 		});

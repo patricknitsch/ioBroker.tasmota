@@ -18,6 +18,7 @@ const STANDARD_CHANNELS = {
  *
  */
 const OPTIONAL_CHANNELS = {
+	energy: 'Energy',
 	sensors: 'Sensors',
 };
 
@@ -30,7 +31,8 @@ class TasmotaDeviceManagement extends DeviceManagement {
 	 * @param {Tasmota} adapter
 	 */
 	constructor(adapter) {
-		super(adapter);
+		// Pass true to enable the standard info.deviceManager communication state
+		super(adapter, true);
 		/** @type {Tasmota} */
 		this._tasmota = adapter;
 	}
@@ -39,6 +41,8 @@ class TasmotaDeviceManagement extends DeviceManagement {
 	getInstanceInfo() {
 		return {
 			apiVersion: 'v3',
+			// 'info.deviceManager' is set by super(adapter, true) in constructor
+			communicationStateId: 'info.deviceManager',
 			actions: [],
 		};
 	}
@@ -344,13 +348,13 @@ class Tasmota extends utils.Adapter {
 			}
 		});
 
-		this.mqttClient.on('reconnect', () => this.log.info('Reconnecting to MQTT broker...'));
+		this.mqttClient.on('reconnect', () => this.log.debug('Reconnecting to MQTT broker...'));
 		this.mqttClient.on('disconnect', () => {
 			this.log.info('Disconnected from MQTT broker');
 			this.setState('info.connection', false, true);
 		});
 		this.mqttClient.on('error', err => {
-			this.log.error(`MQTT client error: ${err.message}`);
+			this.log.warn(`MQTT client error: ${err.message}`);
 			this.setState('info.connection', false, true);
 		});
 		this.mqttClient.on('message', async (topic, payload) => {
