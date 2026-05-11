@@ -2,6 +2,7 @@
 
 const utils = require('@iobroker/adapter-core');
 const mqtt = require('mqtt');
+const { DeviceManagement } = require('@iobroker/dm-utils');
 const { mapMessage } = require('./lib/mapper');
 const { buildCommon, isPowerKey } = require('./lib/datapoints');
 
@@ -9,7 +10,6 @@ const { buildCommon, isPowerKey } = require('./lib/datapoints');
 const STANDARD_CHANNELS = {
 	info: 'Information',
 	wifi: 'WiFi',
-	status: 'Status',
 	controls: 'Controls',
 };
 
@@ -18,9 +18,52 @@ const STANDARD_CHANNELS = {
  *
  */
 const OPTIONAL_CHANNELS = {
-	energy: 'Energy',
 	sensors: 'Sensors',
 };
+
+/**
+ * Device Manager integration for ioBroker admin Device Manager.
+ * Extends dm-utils DeviceManagement to provide device list from discoveredDevices.
+ */
+class TasmotaDeviceManagement extends DeviceManagement {
+	/**
+	 * @param {Tasmota} adapter
+	 */
+	constructor(adapter) {
+		super(adapter);
+		/** @type {Tasmota} */
+		this._tasmota = adapter;
+	}
+
+	/** @returns {import('@iobroker/dm-utils').InstanceDetails} */
+	getInstanceInfo() {
+		return {
+			apiVersion: 'v3',
+			actions: [],
+		};
+	}
+
+	/**
+	 * @param {import('@iobroker/dm-utils').DeviceLoadContext<string>} context
+	 */
+	async loadDevices(context) {
+		const topics = this._tasmota.deviceTopics;
+		for (const [id, topic] of Object.entries(topics)) {
+			context.addDevice({
+				id,
+				name: topic,
+				status: [
+					{
+						connection: {
+							stateId: `${this._tasmota.namespace}.${id}.info.online`,
+							mapping: { true: 'connected', false: 'disconnected' },
+						},
+					},
+				],
+			});
+		}
+	}
+}
 
 class Tasmota extends utils.Adapter {
 	/**
@@ -53,6 +96,9 @@ class Tasmota extends utils.Adapter {
 		 *
 		 */
 		this.createdChannels = new Set();
+
+		/** @type {TasmotaDeviceManagement} */
+		this.deviceManager = new TasmotaDeviceManagement(this);
 
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
@@ -472,6 +518,7 @@ class Tasmota extends utils.Adapter {
 
 	/**
 	 * Ensure a state object exists and update its value.
+	 * Coerces the value to the declared type and logs a debug message when it does.
 	 *
 	 * @param {string}  id     - full relative state ID
 	 * @param {string}  name   - human-readable name
@@ -484,7 +531,49 @@ class Tasmota extends utils.Adapter {
 			common: { name, ...common },
 			native: {},
 		});
-		await this.setStateAsync(id, { val: /** @type {ioBroker.StateValue} */ (value), ack: true });
+		const coerced = this.coerceToType(value, common.type);
+		if (coerced !== value) {
+			this.log.debug(
+				`Type coercion for ${id}: ${JSON.stringify(value)} (${typeof value}) → ${JSON.stringify(coerced)} (${common.type})`,
+			);
+		}
+		await this.setStateAsync(id, { val: /** @type {ioBroker.StateValue} */ (coerced), ack: true });
+	}
+
+	/**
+	 * Coerce a value to the specified ioBroker state type.
+	 * Returns the original value when no coercion is needed or possible.
+	 *
+	 * @param {unknown} value
+	 * @param {string}  [type] - 'boolean' | 'number' | 'string' | 'mixed' | undefined
+	 * @returns {unknown}
+	 */
+	coerceToType(value, type) {
+		if (type === 'boolean') {
+			if (typeof value === 'boolean') {
+				return value;
+			}
+			if (value === 'ON' || value === 'true' || value === 1) {
+				return true;
+			}
+			if (value === 'OFF' || value === 'false' || value === 0) {
+				return false;
+			}
+		} else if (type === 'number') {
+			if (typeof value === 'number') {
+				return value;
+			}
+			const n = Number(value);
+			if (!isNaN(n)) {
+				return n;
+			}
+		} else if (type === 'string') {
+			if (typeof value === 'string') {
+				return value;
+			}
+			return String(value);
+		}
+		return value;
 	}
 
 	// Sanitization / coercion
@@ -612,56 +701,13 @@ class Tasmota extends utils.Adapter {
 	// Device Manager message handler
 
 	/**
-	 * Handle sendTo messages (e.g. from ioBroker admin Device Manager).
+	 * Handle sendTo messages not handled by the dm-utils DeviceManagement class.
+	 * dm-utils registers its own 'message' listener and consumes all dm:* commands.
 	 *
 	 * @param {ioBroker.Message} msg
 	 */
 	async onMessage(msg) {
-		if (!msg) {
-			return;
-		}
-
-		if (msg.command === 'dm:listDevices') {
-			const devices = Object.entries(this.deviceTopics).map(([id, topic]) => ({
-				id,
-				name: topic,
-				native: { topic },
-			}));
-			this.sendTo(msg.from, msg.command, { result: devices }, msg.callback);
-			return;
-		}
-
-		if (msg.command === 'dm:deviceDetails' && msg.message) {
-			const deviceId = String(msg.message.id || msg.message);
-			const topic = this.deviceTopics[deviceId] || deviceId;
-			this.sendTo(
-				msg.from,
-				msg.command,
-				{ result: { id: deviceId, name: topic, native: { topic } } },
-				msg.callback,
-			);
-			return;
-		}
-
-		if (msg.command === 'dm:controlDevice' && msg.message) {
-			const deviceId = String(msg.message.deviceId || '');
-			const command = String(msg.message.command || '');
-			const value = msg.message.value !== undefined ? String(msg.message.value) : '';
-
-			if (deviceId && command) {
-				const originalTopic = this.deviceTopics[deviceId] || deviceId;
-				const structure = this.config.brokerTopicStructure || 'prefix-first';
-				let topic =
-					structure === 'device-first'
-						? `${originalTopic}/cmnd/${command}`
-						: `cmnd/${originalTopic}/${command}`;
-				const prefixes = this.getTopicPrefixes();
-				if (prefixes.length > 0) {
-					topic = `${prefixes[0]}/${topic}`;
-				}
-				this.publishMqtt(topic, value);
-			}
-			this.sendTo(msg.from, msg.command, { result: 'ok' }, msg.callback);
+		if (!msg || msg.command.startsWith('dm:')) {
 			return;
 		}
 	}

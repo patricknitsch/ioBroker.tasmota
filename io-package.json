@@ -88,6 +88,7 @@
 		"tier": 3,
 		"mode": "daemon",
 		"type": "protocols",
+		"features": ["DEVICE_MANAGER"],
 		"compact": true,
 		"connectionType": "local",
 		"dataSource": "push",
