@@ -41,7 +41,8 @@ class TasmotaDeviceManagement extends DeviceManagement {
 	getInstanceInfo() {
 		return {
 			apiVersion: 'v3',
-			// 'info.deviceManager' is set by super(adapter, true) in constructor
+			// Must match the state ID created by passing `true` to super() in the constructor.
+			// The DeviceManagement base class creates this state automatically.
 			communicationStateId: 'info.deviceManager',
 			actions: [],
 		};
