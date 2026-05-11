@@ -29,8 +29,6 @@ function makeStub() {
 describe('Tasmota helper methods', () => {
 	const adapter = makeStub();
 
-	adapter.config = {};
-
 	describe('parseScalar', () => {
 		it('converts ON/ONLINE to boolean true', () => {
 			expect(adapter.parseScalar('ON')).to.equal(true);
