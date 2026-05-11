@@ -30,4 +30,8 @@
 	"topicStructure": "Structure du sujet",
 	"topicDeviceFirst": "Appareil en premier (appareil/préfixe/sujet)",
 	"topicPrefixFirst": "Préfixe en premier (préfixe/appareil/sujet)"
+,
+"dataSettings": "Paramètres de données",
+	"clearOnRestart": "Effacer les données des appareils au redémarrage",
+	"clearOnRestartHelp": "Supprimer tous les objets et états des appareils stockés au démarrage de l'adaptateur."
 }

@@ -92,7 +92,8 @@
 		"connectionType": "local",
 		"dataSource": "push",
 		"adminUI": {
-			"config": "json"
+			"config": "json",
+			"tab": "tab.html"
 		},
 		"dependencies": [
 			{
@@ -129,7 +130,8 @@
 		"brokerReconnectPeriod": 5000,
 		"brokerCleanSession": true,
 		"timeout": 300,
-		"brokerTopicStructure": "device-first"
+		"brokerTopicStructure": "device-first",
+		"clearOnRestart": false
 	},
 	"protectedNative": ["password", "brokerPassword"],
 	"encryptedNative": ["password", "brokerPassword"],

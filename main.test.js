@@ -106,13 +106,13 @@ describe('lib/datapoints', () => {
 
 describe('lib/mapper — mapMessage', () => {
 	describe('tele/LWT', () => {
-		it('maps "Online" to status.online = true', () => {
+		it('maps "Online" to info.online = true', () => {
 			const r = mapMessage('tele', 'LWT', 'Online');
 			expect(r).to.have.length(1);
-			expect(r[0].path).to.equal('status.online');
+			expect(r[0].path).to.equal('info.online');
 			expect(r[0].value).to.equal(true);
 		});
-		it('maps "Offline" to status.online = false', () => {
+		it('maps "Offline" to info.online = false', () => {
 			const r = mapMessage('tele', 'LWT', 'Offline');
 			expect(r[0].value).to.equal(false);
 		});
@@ -152,17 +152,17 @@ describe('lib/mapper — mapMessage', () => {
 			expect(e).to.exist;
 			expect(e.value).to.equal(75);
 		});
-		it('maps Wifi.RSSI to status.rssi', () => {
-			const e = results.find(r => r.path === 'status.rssi');
+		it('maps Wifi.RSSI to wifi.rssi', () => {
+			const e = results.find(r => r.path === 'wifi.rssi');
 			expect(e).to.exist;
 			expect(e.value).to.equal(88);
 		});
-		it('maps Wifi.Signal to status.signal', () => {
-			const e = results.find(r => r.path === 'status.signal');
+		it('maps Wifi.Signal to wifi.signal', () => {
+			const e = results.find(r => r.path === 'wifi.signal');
 			expect(e).to.exist;
 		});
-		it('maps Wifi.SSId to status.ssid', () => {
-			const e = results.find(r => r.path === 'status.ssid');
+		it('maps Wifi.SSId to wifi.ssid', () => {
+			const e = results.find(r => r.path === 'wifi.ssid');
 			expect(e).to.exist;
 			expect(e.value).to.equal('MyNet');
 		});

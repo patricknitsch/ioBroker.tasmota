@@ -30,4 +30,8 @@
 	"topicStructure": "Struktura tematu",
 	"topicDeviceFirst": "Urządzenie pierwsze (urządzenie/prefiks/temat)",
 	"topicPrefixFirst": "Prefiks pierwszy (prefiks/urządzenie/temat)"
+,
+"dataSettings": "Ustawienia danych",
+	"clearOnRestart": "Wyczyść dane urządzenia przy ponownym uruchomieniu",
+	"clearOnRestartHelp": "Usuwa wszystkie zapisane obiekty i stany urządzeń przy starcie adaptera."
 }

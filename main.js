@@ -7,8 +7,9 @@ const { buildCommon, isPowerKey } = require('./lib/datapoints');
 
 /** Channel objects that are always created for every device. */
 const STANDARD_CHANNELS = {
-	status: 'Status',
 	info: 'Information',
+	wifi: 'WiFi',
+	status: 'Status',
 	controls: 'Controls',
 };
 
@@ -81,6 +82,21 @@ class Tasmota extends utils.Adapter {
 		});
 
 		this.setState('info.connection', false, true);
+
+		// Delete all device objects if clearOnRestart is enabled
+		if (this.config.clearOnRestart) {
+			this.log.info('clearOnRestart enabled — deleting all device objects');
+			try {
+				const devices = await this.getDevicesAsync();
+				for (const dev of devices) {
+					await this.delObjectAsync(dev._id, { recursive: true });
+					this.log.debug(`Deleted device objects for: ${dev._id}`);
+				}
+			} catch (e) {
+				this.log.warn(`clearOnRestart: could not delete device objects: ${e.message}`);
+			}
+		}
+
 		await this.loadExistingDevices();
 
 		if (this.config.mode === 'server') {
@@ -361,12 +377,7 @@ class Tasmota extends utils.Adapter {
 			await this.ensureChannel(safeDeviceId, 'raw', 'Raw');
 			const rawId = `${safeDeviceId}.raw.${this.sanitizeId(prefix)}_${safeCmd}`;
 			const rawVal = String(payload);
-			await this.ensureState(
-				rawId,
-				command,
-				{ type: 'string', role: 'text', read: true, write: false },
-				rawVal,
-			);
+			await this.ensureState(rawId, command, { type: 'string', role: 'text', read: true, write: false }, rawVal);
 			return;
 		}
 
@@ -407,8 +418,8 @@ class Tasmota extends utils.Adapter {
 			await this.ensureChannel(safeDeviceId, channel, name);
 		}
 
-		// Pre-create status.online so it exists even before the first LWT arrives
-		const onlineId = `${safeDeviceId}.status.online`;
+		// Pre-create info.online so it exists even before the first LWT arrives
+		const onlineId = `${safeDeviceId}.info.online`;
 		await this.ensureState(
 			onlineId,
 			'online',
