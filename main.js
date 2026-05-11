@@ -336,12 +336,12 @@ class Tasmota extends utils.Adapter {
 			const safeCmd = this.sanitizeId(command);
 			await this.ensureChannel(safeDeviceId, 'raw', 'Raw');
 			const rawId = `${safeDeviceId}.raw.${this.sanitizeId(prefix)}_${safeCmd}`;
-			const parsedVal = this.coercePayload(payload);
+			const rawVal = String(payload);
 			await this.ensureState(
 				rawId,
 				command,
 				{ type: 'string', role: 'text', read: true, write: false },
-				parsedVal,
+				rawVal,
 			);
 			return;
 		}
