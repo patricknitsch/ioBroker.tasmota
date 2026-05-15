@@ -122,6 +122,50 @@ describe('classifier', () => {
 		expect(result.folder).to.equal('controls');
 		expect(result.write).to.equal(true);
 	});
+
+	it('classifies light controls (Dimmer, Color, CT, Hue) into controls folder', () => {
+		expect(classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'Dimmer'], value: 50 }).folder).to.equal('controls');
+		expect(classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'CT'], value: 300 }).folder).to.equal('controls');
+		expect(classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'Color'], value: 'FF0000' }).folder).to.equal('controls');
+		expect(classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'Hue'], value: 120 }).folder).to.equal('controls');
+	});
+
+	it('classifies shutter controls into controls folder', () => {
+		expect(classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'ShutterPosition1'], value: 50 }).folder).to.equal('controls');
+		expect(classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'ShutterOpen1'], value: true }).folder).to.equal('controls');
+	});
+
+	it('classifies fan speed into controls folder', () => {
+		const result = classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'FanSpeed'], value: 2 });
+		expect(result.folder).to.equal('controls');
+		expect(result.write).to.equal(true);
+	});
+
+	it('classifies physical switch state into info folder (not controls)', () => {
+		const result = classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'Switch1'], value: 'ON' });
+		expect(result.folder).to.equal('info');
+		expect(result.write).to.equal(false);
+	});
+
+	it('classifies button events into info folder (not controls)', () => {
+		const result = classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'Button1'], value: 'SINGLE' });
+		expect(result.folder).to.equal('info');
+		expect(result.write).to.equal(false);
+	});
+
+	it('CT profile has correct metadata', () => {
+		const result = classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'CT'], value: 300 });
+		expect(result.type).to.equal('number');
+		expect(result.role).to.equal('level.color.temperature');
+		expect(result.unit).to.equal('mired');
+	});
+
+	it('ShutterPosition profile has correct metadata', () => {
+		const result = classifyState({ prefix: 'stat', sourceParts: ['stat', 'RESULT', 'ShutterPosition1'], value: 75 });
+		expect(result.type).to.equal('number');
+		expect(result.role).to.equal('level.blind');
+		expect(result.unit).to.equal('%');
+	});
 });
 
 describe('topic parser', () => {
