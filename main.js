@@ -269,9 +269,34 @@ class Tasmota extends utils.Adapter {
 		}
 
 		const safeDeviceId = sanitizeId(parsedTopic.deviceId);
-		const isNewDevice = await this.ensureDeviceStructure(safeDeviceId, parsedTopic.deviceId);
-		if (isNewDevice) {
-			await this.requestDeviceSnapshot(parsedTopic.deviceId);
+		const lastCommand = parsedTopic.commandParts[parsedTopic.commandParts.length - 1] || '';
+		const isLwtMessage = lastCommand.toUpperCase() === 'LWT';
+
+		if (isLwtMessage) {
+			const isOnline = parseScalar(payload) === true;
+			const deviceExists = this.knownDevices.has(safeDeviceId);
+
+			if (!isOnline && !deviceExists) {
+				return;
+			}
+
+			if (isOnline) {
+				if (!deviceExists) {
+					await this.ensureDeviceStructure(safeDeviceId, parsedTopic.deviceId);
+				}
+				this.discoveryRequested.delete(safeDeviceId);
+				await this.requestDeviceSnapshot(parsedTopic.deviceId);
+			}
+
+			const sourcePrefix = parsedTopic.prefix ? [parsedTopic.prefix] : [];
+			const sourceParts = sourcePrefix.concat(parsedTopic.commandParts);
+			const idPath = parsedTopic.commandParts.map(part => sanitizeId(part));
+			await this.storeClassifiedState(safeDeviceId, idPath, sourceParts, isOnline);
+			return;
+		}
+
+		if (!this.knownDevices.has(safeDeviceId)) {
+			return;
 		}
 
 		const sourcePrefix = parsedTopic.prefix ? [parsedTopic.prefix] : [];
@@ -293,7 +318,23 @@ class Tasmota extends utils.Adapter {
 	}
 
 	async storeObjectPayload(deviceId, prefix, objectValue, baseIdPath, baseSourcePath) {
-		for (const [key, value] of Object.entries(objectValue)) {
+		const entries = Object.entries(objectValue);
+
+		// Flatten redundant single-key wrapper when key name matches the command name
+		// e.g. INFO1 payload {"Info1": {...}} → skip the "Info1" level
+		if (entries.length === 1) {
+			const [key, val] = entries[0];
+			if (val && typeof val === 'object' && !Array.isArray(val)) {
+				const lastCmd = (baseIdPath[baseIdPath.length - 1] || '').toLowerCase().replace(/\d+$/, '');
+				const normKey = key.toLowerCase().replace(/\d+$/, '');
+				if (lastCmd && lastCmd === normKey) {
+					await this.storeObjectPayload(deviceId, prefix, val, baseIdPath, baseSourcePath);
+					return;
+				}
+			}
+		}
+
+		for (const [key, value] of entries) {
 			const nextIdPath = baseIdPath.concat(sanitizeId(key));
 			const nextSourcePath = baseSourcePath.concat(key);
 

@@ -134,4 +134,57 @@ describe('topic parser', () => {
 		const parsed = parseIncomingTopic('tasmota/device1/tele/STATE', ['tasmota'], 'device-first');
 		expect(parsed).to.deep.equal({ deviceId: 'device1', prefix: 'tele', commandParts: ['STATE'] });
 	});
+
+	it('parses LWT topics', () => {
+		const parsed = parseIncomingTopic('tasmota/tele/device1/LWT', ['tasmota'], 'prefix-first');
+		expect(parsed).to.deep.equal({ deviceId: 'device1', prefix: 'tele', commandParts: ['LWT'] });
+	});
+});
+
+describe('storeObjectPayload wrapper flattening', () => {
+	it('flattens single-key wrapper when key matches command name (INFO1 → Info1)', async () => {
+		const adapter = makeStub();
+		const stored = [];
+		adapter.storeClassifiedState = async (deviceId, idPath, sourceParts, value) => {
+			stored.push({ deviceId, idPath, value });
+		};
+
+		// Simulate INFO1 payload: {"Info1": {"Version": "12.4.0", "Module": "Generic"}}
+		await adapter.storeObjectPayload('device1', 'tele', { Info1: { Version: '12.4.0', Module: 'Generic' } }, ['INFO1'], ['tele', 'INFO1']);
+
+		expect(stored).to.have.length(2);
+		// States should be at INFO1 level, not INFO1.Info1
+		expect(stored.find(s => s.idPath.join('.') === 'INFO1.Version')).to.exist;
+		expect(stored.find(s => s.idPath.join('.') === 'INFO1.Module')).to.exist;
+	});
+
+	it('does not flatten when key does not match command name', async () => {
+		const adapter = makeStub();
+		const stored = [];
+		adapter.storeClassifiedState = async (deviceId, idPath, sourceParts, value) => {
+			stored.push({ deviceId, idPath, value });
+		};
+
+		// Simulate STATUS5 payload: {"StatusNET": {"Hostname": "device1"}}
+		await adapter.storeObjectPayload('device1', 'stat', { StatusNET: { Hostname: 'device1' } }, ['STATUS5'], ['stat', 'STATUS5']);
+
+		expect(stored).to.have.length(1);
+		// StatusNET wrapper should be kept → STATUS5.StatusNET.Hostname
+		expect(stored[0].idPath.join('.')).to.equal('STATUS5.StatusNET.Hostname');
+	});
+
+	it('does not flatten objects with multiple top-level keys', async () => {
+		const adapter = makeStub();
+		const stored = [];
+		adapter.storeClassifiedState = async (deviceId, idPath, sourceParts, value) => {
+			stored.push({ deviceId, idPath, value });
+		};
+
+		// STATE payload has multiple top-level keys → no flattening
+		await adapter.storeObjectPayload('device1', 'tele', { POWER: 'ON', Heap: 29 }, ['STATE'], ['tele', 'STATE']);
+
+		expect(stored).to.have.length(2);
+		expect(stored.find(s => s.idPath.join('.') === 'STATE.POWER')).to.exist;
+		expect(stored.find(s => s.idPath.join('.') === 'STATE.Heap')).to.exist;
+	});
 });
