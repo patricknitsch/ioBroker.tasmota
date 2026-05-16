@@ -7,7 +7,7 @@ const { sanitizeId, parseScalar, inferType } = require('./lib/value-utils');
 const { parseIncomingTopic } = require('./lib/topic-parser');
 const { DATAPOINTS } = require('./lib/datapoints');
 const { DISCOVERY_COMMANDS } = require('./lib/discovery');
-const { TasmotaDeviceManager } = require('./lib/device-manager');
+const { TasmotaDeviceManager, detectDeviceType, OBJ_ICONS } = require('./lib/device-manager');
 
 class Tasmota extends utils.Adapter {
 	constructor(options) {
@@ -120,6 +120,31 @@ class Tasmota extends utils.Adapter {
 			} catch {
 				// state may not exist yet on first run
 			}
+			// Ensure icon and statusStates are up-to-date for pre-existing devices
+			await this.updateDeviceIcon(deviceId);
+		}
+	}
+
+	async updateDeviceIcon(deviceId) {
+		try {
+			const ns = this.namespace;
+			const result = await this.getObjectListAsync({
+				startkey: `${ns}.${deviceId}.`,
+				endkey: `${ns}.${deviceId}.香`,
+			});
+			const keys = result.rows
+				.filter(r => r.value?.type === 'state')
+				.map(r => r.id.replace(`${ns}.${deviceId}.`, ''));
+			const deviceType = detectDeviceType(keys);
+			const icon = OBJ_ICONS[deviceType] || OBJ_ICONS.unknown;
+			await this.extendObjectAsync(deviceId, {
+				common: {
+					icon,
+					statusStates: { onlineId: `${ns}.${deviceId}.alive` },
+				},
+			});
+		} catch (e) {
+			this.log.debug(`updateDeviceIcon(${deviceId}) failed: ${e.message}`);
 		}
 	}
 
@@ -502,6 +527,8 @@ class Tasmota extends utils.Adapter {
 		for (const item of DISCOVERY_COMMANDS) {
 			await this.publishCommand(deviceId, item.command, item.payload);
 		}
+		// Update object-tree icon after snapshot responses are expected
+		setTimeout(() => this.updateDeviceIcon(deviceId).catch(() => {}), 5000);
 	}
 
 	async onStateChange(id, state) {
