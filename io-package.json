@@ -90,6 +90,9 @@
 		"adminUI": {
 			"config": "json"
 		},
+		"supportedMessages": {
+			"deviceManager": true
+		},
 		"dependencies": [
 			{
 				"js-controller": ">=6.0.11"
@@ -126,7 +129,12 @@
 		"brokerCleanSession": true,
 		"timeout": 300,
 		"brokerTopicStructure": "device-first",
-		"clearFolders": false
+		"clientTimeout": 30,
+		"clearFolders": false,
+		"processTeleSensor": true,
+		"processTeleState": true,
+		"processStatResult": true,
+		"objectTree": true
 	},
 	"protectedNative": ["password", "brokerPassword"],
 	"encryptedNative": ["password", "brokerPassword"],

@@ -7,6 +7,7 @@ const { sanitizeId, parseScalar, inferType } = require('./lib/value-utils');
 const { parseIncomingTopic } = require('./lib/topic-parser');
 const { DATAPOINTS } = require('./lib/datapoints');
 const { DISCOVERY_COMMANDS } = require('./lib/discovery');
+const { TasmotaDeviceManager } = require('./lib/device-manager');
 
 class Tasmota extends utils.Adapter {
 	constructor(options) {
@@ -22,6 +23,7 @@ class Tasmota extends utils.Adapter {
 		this.discoveryRequested = new Set();
 		this.ensuredObjects = new Set();
 		this.configMissingLogged = false;
+		this.deviceManager = null;
 
 		this.on('ready', this.onReady.bind(this));
 		this.on('stateChange', this.onStateChange.bind(this));
@@ -74,6 +76,8 @@ class Tasmota extends utils.Adapter {
 		}
 
 		await this.subscribeStatesAsync('*');
+
+		this.deviceManager = new TasmotaDeviceManager(this);
 	}
 
 	getConfigurationErrors() {
@@ -210,11 +214,12 @@ class Tasmota extends utils.Adapter {
 			? this.config.brokerClientId
 			: `iobroker_tasmota_${this.namespace}_${Math.random().toString(16).slice(2, 8)}`;
 
+		const clientTimeoutSec = Number(this.config.clientTimeout) || 30;
 		const options = {
 			clientId,
 			clean: this.config.brokerCleanSession !== false,
 			reconnectPeriod: this.config.brokerReconnectPeriod || 5000,
-			connectTimeout: 30000,
+			connectTimeout: clientTimeoutSec * 1000,
 			keepalive: this.config.brokerKeepalive || 60,
 		};
 
@@ -296,6 +301,13 @@ class Tasmota extends utils.Adapter {
 
 		if (!this.knownDevices.has(safeDeviceId)) return;
 
+		const prefix = parsedTopic.prefix ? parsedTopic.prefix.toLowerCase() : '';
+		if (prefix === 'tele') {
+			if (lastCommand.toUpperCase() === 'SENSOR' && this.config.processTeleSensor === false) return;
+			if (lastCommand.toUpperCase() === 'STATE' && this.config.processTeleState === false) return;
+		}
+		if ((prefix === 'stat') && lastCommand.toUpperCase() === 'RESULT' && this.config.processStatResult === false) return;
+
 		let parsedPayload;
 		try {
 			parsedPayload = JSON.parse(payload);
@@ -303,10 +315,27 @@ class Tasmota extends utils.Adapter {
 			parsedPayload = payload;
 		}
 
+		const useObjectTree = this.config.objectTree !== false;
+
 		if (parsedPayload !== null && typeof parsedPayload === 'object' && !Array.isArray(parsedPayload)) {
-			await this.storeObjectPayload(safeDeviceId, parsedTopic.commandParts, parsedPayload);
+			if (useObjectTree) {
+				await this.storeObjectPayload(safeDeviceId, parsedTopic.commandParts, parsedPayload);
+			} else {
+				await this.storeObjectPayloadFlat(safeDeviceId, parsedTopic.commandParts, parsedPayload);
+			}
 		} else {
 			await this.storeLeafState(safeDeviceId, null, lastCommand, parsedPayload);
+		}
+	}
+
+	async storeObjectPayloadFlat(deviceId, commandParts, obj, keyPrefix) {
+		for (const [key, value] of Object.entries(obj)) {
+			const flatKey = keyPrefix ? `${keyPrefix}_${key}` : key;
+			if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+				await this.storeObjectPayloadFlat(deviceId, commandParts, value, flatKey);
+			} else {
+				await this.storeLeafState(deviceId, null, flatKey, value);
+			}
 		}
 	}
 

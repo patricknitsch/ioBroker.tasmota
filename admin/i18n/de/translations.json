@@ -35,5 +35,19 @@
 	"pageMaintenance": "Wartung",
 	"maintenanceSettings": "Wartungseinstellungen",
 	"clearFolders": "Alle Geräteordner beim Adapterstart bereinigen",
-	"clearFoldersHelp": "Löscht beim nächsten Adapterstart alle erkannten Gerätekanäle/-datenpunkte und baut sie automatisch neu auf."
+	"clearFoldersHelp": "Löscht beim nächsten Adapterstart alle erkannten Gerätekanäle/-datenpunkte und baut sie automatisch neu auf.",
+	"connectionTimeout": "Verbindungs-Timeout",
+	"clientTimeout": "Client-Timeout (s)",
+	"clientTimeoutHelp": "Timeout für die MQTT-Verbindung in Sekunden",
+	"pageOptions": "Optionen",
+	"messageProcessing": "Nachrichtenverarbeitung",
+	"processTeleSensor": "tele/SENSOR verarbeiten",
+	"processTeleSensorHelp": "Sensor-Telemetrie-Nachrichten (tele/xxx/SENSOR) verarbeiten und Datenpunkte anlegen",
+	"processTeleState": "tele/STATE verarbeiten",
+	"processTeleStateHelp": "Zustands-Telemetrie-Nachrichten (tele/xxx/STATE) verarbeiten und Datenpunkte anlegen",
+	"processStatResult": "stat/RESULT verarbeiten",
+	"processStatResultHelp": "Ergebnis-Nachrichten (stat/xxx/RESULT) auf Steuerbestätigungen verarbeiten",
+	"objectTreeSettings": "Objektbaum-Einstellungen",
+	"objectTree": "Objektbaum erstellen",
+	"objectTreeHelp": "Verschachtelte JSON-Daten als Ordnerstruktur im Objektbaum anlegen (statt flacher Notation mit Unterstrichen)"
 }

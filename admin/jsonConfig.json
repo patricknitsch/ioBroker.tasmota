@@ -217,6 +217,25 @@
 "md": 6,
 "lg": 4,
 "xl": 4
+},
+"clientTimeoutHeader": {
+"type": "header",
+"text": "connectionTimeout",
+"size": 5,
+"hidden": "data.mode !== 'client'"
+},
+"clientTimeout": {
+"type": "number",
+"label": "clientTimeout",
+"help": "clientTimeoutHelp",
+"default": 30,
+"min": 5,
+"hidden": "data.mode !== 'client'",
+"xs": 12,
+"sm": 4,
+"md": 4,
+"lg": 4,
+"xl": 4
 }
 }
 },
@@ -333,6 +352,66 @@
 "label": "clearFolders",
 "help": "clearFoldersHelp",
 "default": false,
+"xs": 12,
+"sm": 12,
+"md": 12,
+"lg": 12,
+"xl": 12
+}
+}
+},
+"optionsPage": {
+"type": "panel",
+"label": "pageOptions",
+"items": {
+"msgProcessingHeader": {
+"type": "header",
+"text": "messageProcessing",
+"size": 5
+},
+"processTeleSensor": {
+"type": "checkbox",
+"label": "processTeleSensor",
+"help": "processTeleSensorHelp",
+"default": true,
+"xs": 12,
+"sm": 12,
+"md": 12,
+"lg": 12,
+"xl": 12
+},
+"processTeleState": {
+"type": "checkbox",
+"label": "processTeleState",
+"help": "processTeleStateHelp",
+"default": true,
+"xs": 12,
+"sm": 12,
+"md": 12,
+"lg": 12,
+"xl": 12
+},
+"processStatResult": {
+"type": "checkbox",
+"label": "processStatResult",
+"help": "processStatResultHelp",
+"default": true,
+"xs": 12,
+"sm": 12,
+"md": 12,
+"lg": 12,
+"xl": 12
+},
+"objectTreeHeader": {
+"type": "header",
+"text": "objectTreeSettings",
+"size": 5
+},
+"objectTree": {
+"type": "checkbox",
+"label": "objectTree",
+"help": "objectTreeHelp",
+"default": true,
 "xs": 12,
 "sm": 12,
 "md": 12,
