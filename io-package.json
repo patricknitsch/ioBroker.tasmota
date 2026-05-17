@@ -88,15 +88,10 @@
 		"connectionType": "local",
 		"dataSource": "push",
 		"adminUI": {
-			"config": "json",
-			"tab": "html"
+			"config": "json"
 		},
-		"adminTab": {
-			"singleton": false,
-			"name": {
-				"en": "Device Overview",
-				"de": "Geräteübersicht"
-			}
+		"supportedMessages": {
+			"deviceManager": true
 		},
 		"dependencies": [
 			{
@@ -133,7 +128,13 @@
 		"brokerReconnectPeriod": 5000,
 		"brokerCleanSession": true,
 		"timeout": 300,
-		"brokerTopicStructure": "device-first"
+		"brokerTopicStructure": "device-first",
+		"clientTimeout": 30,
+		"clearFolders": false,
+		"processTeleSensor": true,
+		"processTeleState": true,
+		"processStatResult": true,
+		"objectTree": true
 	},
 	"protectedNative": ["password", "brokerPassword"],
 	"encryptedNative": ["password", "brokerPassword"],
